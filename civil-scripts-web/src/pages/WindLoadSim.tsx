@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react"
-import { calculateWindLoad } from "@/lib/physics/models"
 import { MetricDisplay } from "@/components/shared/MetricDisplay"
 import { StatusBadge } from "@/components/shared/StatusBadge"
+import { useState, useMemo } from "react"
+import { calculateWindLoad } from "@/lib/physics/models"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { motion } from "framer-motion"
 import { Settings2 } from "lucide-react"
@@ -20,11 +20,11 @@ export function WindLoadSim() {
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
           <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">TINGGI GEDUNG (m)</label><span className="text-sm font-bold">{height}m</span></div><input type="range" min={10} max={200} step={5} value={height} onChange={(e) => setHeight(Number(e.target.value))} className="w-full accent-civil-500" /></div>
           <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">KEC. ANGIN (km/jam)</label><span className="text-sm font-bold text-destructive">{windSpeed}km/j</span></div><input type="range" min={30} max={250} value={windSpeed} onChange={(e) => setWindSpeed(Number(e.target.value))} className="w-full accent-destructive" /></div>
-          <div className="space-y-3"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">LOKASI</label><select value={location} onChange={(e) => setLocation(e.target.value as any)} className="w-full p-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-secondary)]"><option value="kota">Pusat Kota (Terhalang Gedung)</option><option value="pantai">Tepi Pantai (Terbuka Bebas)</option></select></div>
+          <div className="space-y-3"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">LOKASI</label><select value={location} onChange={(e) => setLocation(e.target.value as "kota" | "pantai")} className="w-full p-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-secondary)]"><option value="kota">Pusat Kota (Terhalang Gedung)</option><option value="pantai">Tepi Pantai (Terbuka Bebas)</option></select></div>
         </div>
       </motion.div>
       <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
-        <MetricDisplay label="Tekanan Angin Maksimal" value={result.maxPressure} unit="Pascal (Pa)" status={result.status as any} />
+        <MetricDisplay label="Tekanan Angin Maksimal" value={result.maxPressure} unit="Pascal (Pa)" status={result.status} />
         <div className="flex-1 min-h-[300px] border border-[var(--color-border)] rounded-xl bg-[var(--color-card)] p-4 shadow-sm">
           <h3 className="text-sm font-bold text-center mb-4 text-[var(--color-muted-foreground)]">PROFIL TEKANAN ANGIN (Pa) PER LANTAI</h3>
           <ResponsiveContainer width="100%" height="80%">
@@ -37,7 +37,7 @@ export function WindLoadSim() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <StatusBadge status={result.status as any}>{result.msg}</StatusBadge>
+        <StatusBadge status={result.status}>{result.msg}</StatusBadge>
       </div>
     </div>
   )

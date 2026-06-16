@@ -4,8 +4,6 @@ import {
   getEarthquakeStatus,
   type EarthquakeParams,
 } from "@/lib/physics/earthquake"
-import { MetricDisplay } from "@/components/shared/MetricDisplay"
-import { StatusBadge } from "@/components/shared/StatusBadge"
 import { motion, AnimatePresence } from "framer-motion"
 import { Play, Square, Settings2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"

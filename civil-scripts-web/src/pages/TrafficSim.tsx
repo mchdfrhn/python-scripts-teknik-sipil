@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react"
-import { calculateTraffic } from "@/lib/physics/models"
 import { MetricDisplay } from "@/components/shared/MetricDisplay"
 import { StatusBadge } from "@/components/shared/StatusBadge"
+import { useState, useMemo } from "react"
+import { calculateTraffic } from "@/lib/physics/models"
 import { motion } from "framer-motion"
 import { Settings2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -24,8 +24,8 @@ export function TrafficSim() {
       <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
         <div className="grid grid-cols-3 gap-4">
           <MetricDisplay label="Kapasitas Total" value={result.totalCapacity} unit="smp/jam" status="neutral" />
-          <MetricDisplay label="V/C Ratio" value={result.vcr} unit="Ratio" status={result.status as any} />
-          <MetricDisplay label="Level of Service" value={result.los} unit="LOS" status={result.status as any} />
+          <MetricDisplay label="V/C Ratio" value={result.vcr} unit="Ratio" status={result.status} />
+          <MetricDisplay label="Level of Service" value={result.los} unit="LOS" status={result.status} />
         </div>
         
         {/* Animated Traffic Simulation */}
@@ -63,7 +63,7 @@ export function TrafficSim() {
             ))}
           </div>
         </div>
-        <StatusBadge status={result.status as any}>{result.msg}</StatusBadge>
+        <StatusBadge status={result.status}>{result.msg}</StatusBadge>
       </div>
     </div>
   )

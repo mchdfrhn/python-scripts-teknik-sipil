@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react"
-import { calculatePipeFlow } from "@/lib/physics/models"
 import { MetricDisplay } from "@/components/shared/MetricDisplay"
 import { StatusBadge } from "@/components/shared/StatusBadge"
+import { useState, useMemo } from "react"
+import { calculatePipeFlow } from "@/lib/physics/models"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { motion } from "framer-motion"
 import { Settings2 } from "lucide-react"
@@ -24,7 +24,7 @@ export function PipeFlowSim() {
       <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <MetricDisplay label="Kehilangan Tekanan" value={result.headLoss} unit="Meter (m)" status="neutral" />
-          <MetricDisplay label="Tekanan Tersisa di Keran" value={result.finalPressure} unit="Meter (m)" status={result.status as any} />
+          <MetricDisplay label="Tekanan Tersisa di Keran" value={result.finalPressure} unit="Meter (m)" status={result.status} />
         </div>
         <div className="flex-1 min-h-[300px] border border-[var(--color-border)] rounded-xl bg-[var(--color-card)] p-4 shadow-sm">
           <h3 className="text-sm font-bold text-center mb-4 text-[var(--color-muted-foreground)]">PROFIL TEKANAN ALIRAN AIR SEPANJANG PIPA</h3>
@@ -44,7 +44,7 @@ export function PipeFlowSim() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <StatusBadge status={result.status as any}>{result.msg}</StatusBadge>
+        <StatusBadge status={result.status}>{result.msg}</StatusBadge>
       </div>
     </div>
   )

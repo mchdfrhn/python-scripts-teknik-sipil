@@ -2,10 +2,6 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { ArrowLeft, Construction } from "lucide-react"
 
-interface PlaceholderProps {
-  icon: string // We'll keep it as string for now, but maybe it should be an Icon component. Actually, wait. I changed constants to use Lucide React components, but App.tsx passes strings to SimPlaceholder right now. I should fix App.tsx or SimPlaceholder.
-}
-
 export function SimPlaceholder({ title, description }: { title: string, description: string }) {
   const navigate = useNavigate()
 

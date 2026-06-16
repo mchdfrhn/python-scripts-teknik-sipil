@@ -1,5 +1,7 @@
 // Physics engine for remaining 9 modules
 
+export type StatusType = "safe" | "warning" | "danger" | "neutral";
+
 // ==========================================
 // 1. STEEL BEAM (Kelenturan Balok & Jembatan)
 // ==========================================
@@ -20,7 +22,7 @@ export function calculateBeam(length: number, load: number, profile: "IWF" | "HB
     const sfd = x < length / 2 ? maxGeser : -maxGeser
     const bmd = x <= length / 2 ? (load / 2) * x : (load / 2) * (length - x)
     // Deflection curve for point load at center
-    let def = 0
+    let def;
     const x_mm = x * 1000
     if (x_mm <= L_mm / 2) {
       def = ((load * 1000 * x_mm) / (48 * E * I)) * (3 * L_mm * L_mm - 4 * x_mm * x_mm)
@@ -31,7 +33,7 @@ export function calculateBeam(length: number, load: number, profile: "IWF" | "HB
     points.push({ x, sfd, bmd, def: -def }) // def negative means downward
   }
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Lendutan balok masih dalam batas aman."
   const limit = L_mm / 360
   if (maxDeflection > limit) {
@@ -71,7 +73,7 @@ export function calculateWindLoad(height: number, windSpeed: number, location: "
     maxPressure = Math.max(maxPressure, p)
   }
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Ketebalan kaca standar aman digunakan."
   if (maxPressure > 1500) {
     status = "danger"
@@ -105,7 +107,7 @@ export function calculateConcrete(targetStrength: number, flyAshPercent: number)
   const co2_eco = (finalCement * 0.9) + (flyAshMass * 0.02)
   const co2_reduction = ((co2_standard - co2_eco) / co2_standard) * 100
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Campuran beton optimal dan mudah diaduk."
   if (flyAshPercent > 35) {
     status = "danger"
@@ -137,7 +139,7 @@ export function calculateSchedule(delay: number) {
     { name: "Finishing & Cat", start: baseDays.fondasi + dinding + baseDays.atap, end: totalDuration, critical: true },
   ]
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Proyek berjalan sesuai rencana waktu."
   if (delay > 5) {
     status = "danger"
@@ -165,7 +167,7 @@ export function calculateSoilBearing(width: number, cohesion: number, phi: numbe
   const q_ult = (cohesion * Nc) + (gamma * Df * Nq) + (0.5 * gamma * width * Ng)
   const q_all = q_ult / 3 // Safety Factor = 3
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Pondasi sangat aman menahan beban rumah 2 lantai."
   if (q_all < 50) {
     status = "danger"
@@ -197,7 +199,7 @@ export function calculateRetainingWall(height: number, soilType: "pasir" | "lemp
   
   const SF_overturning = resistingMoment / overturningMoment
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Dinding penahan tebing sangat kokoh."
   if (SF_overturning < 1.5) {
     status = "danger"
@@ -232,7 +234,7 @@ export function calculateHydrology(rainIntensity: "ringan" | "sedang" | "lebat",
   // Calculate volume stored
   const totalVolumeStored = hydrograph.reduce((sum, h) => sum + (h.inflow - h.outflow > 0 ? h.inflow - h.outflow : 0), 0)
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Bendungan berhasil meredam debit air. Kota hilir aman dari banjir."
   if (totalVolumeStored > 400 && gatesOpen < 3) {
     status = "danger"
@@ -266,7 +268,7 @@ export function calculatePipeFlow(length: number, diameter: number) {
 
   const finalPressure = 10 - hf
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Air mengalir sangat deras di ujung keran."
   if (finalPressure < 2) {
     status = "danger"
@@ -295,7 +297,7 @@ export function calculateTraffic(volume: number, lanes: number) {
   else if (vcr > 0.6) los = "C"
   else if (vcr > 0.4) los = "B"
 
-  let status = "safe"
+  let status: StatusType = "safe"
   let msg = "Jalan lengang, kendaraan bisa ngebut santai."
   if (los === "F") {
     status = "danger"

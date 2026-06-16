@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react"
-import { calculateSoilBearing } from "@/lib/physics/models"
 import { MetricDisplay } from "@/components/shared/MetricDisplay"
 import { StatusBadge } from "@/components/shared/StatusBadge"
+import { useState, useMemo } from "react"
+import { calculateSoilBearing } from "@/lib/physics/models"
 import { motion } from "framer-motion"
 import { Settings2 } from "lucide-react"
 
@@ -25,7 +25,7 @@ export function SoilBearingSim() {
       <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <MetricDisplay label="Daya Dukung Ultimate (Maks)" value={result.q_ult} unit="kPa" status="neutral" />
-          <MetricDisplay label="Daya Dukung Izin (Aman)" value={result.q_all} unit="kPa" status={result.status as any} />
+          <MetricDisplay label="Daya Dukung Izin (Aman)" value={result.q_all} unit="kPa" status={result.status} />
         </div>
         
         {/* Simple visual representation */}
@@ -62,7 +62,7 @@ export function SoilBearingSim() {
             />
           </div>
         </div>
-        <StatusBadge status={result.status as any}>{result.msg}</StatusBadge>
+        <StatusBadge status={result.status}>{result.msg}</StatusBadge>
       </div>
     </div>
   )

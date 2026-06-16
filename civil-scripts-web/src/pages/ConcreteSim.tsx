@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react"
-import { calculateConcrete } from "@/lib/physics/models"
 import { MetricDisplay } from "@/components/shared/MetricDisplay"
 import { StatusBadge } from "@/components/shared/StatusBadge"
+import { useState, useMemo } from "react"
+import { calculateConcrete } from "@/lib/physics/models"
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { motion } from "framer-motion"
 import { Settings2 } from "lucide-react"
@@ -29,7 +29,7 @@ export function ConcreteSim() {
       </motion.div>
       <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
         <div className="grid grid-cols-2 gap-4">
-          <MetricDisplay label="Pengurangan Emisi CO2" value={result.co2_reduction} unit="%" status={result.status as any} />
+          <MetricDisplay label="Pengurangan Emisi CO2" value={result.co2_reduction} unit="%" status={result.status} />
           <MetricDisplay label="Faktor Air Semen (FAS)" value={result.w_c} unit="Ratio" status="neutral" />
         </div>
         <div className="flex-1 min-h-[300px] border border-[var(--color-border)] rounded-xl bg-[var(--color-card)] p-4 shadow-sm flex flex-col items-center justify-center">
@@ -37,14 +37,14 @@ export function ConcreteSim() {
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" isAnimationActive={false}>
-                {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                {pieData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
               </Pie>
               <Tooltip contentStyle={{ backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', borderRadius: '8px' }} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <StatusBadge status={result.status as any}>{result.msg}</StatusBadge>
+        <StatusBadge status={result.status}>{result.msg}</StatusBadge>
       </div>
     </div>
   )

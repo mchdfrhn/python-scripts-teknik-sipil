@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react"
-import { calculateBeam } from "@/lib/physics/models"
 import { MetricDisplay } from "@/components/shared/MetricDisplay"
 import { StatusBadge } from "@/components/shared/StatusBadge"
+import { useState, useMemo } from "react"
+import { calculateBeam } from "@/lib/physics/models"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { motion } from "framer-motion"
-import { Settings2, Info } from "lucide-react"
+import { Settings2 } from "lucide-react"
 
 export function SteelBeamSim() {
   const [length, setLength] = useState(10)
@@ -41,7 +41,7 @@ export function SteelBeamSim() {
 
           <div className="space-y-3">
             <label className="text-xs font-semibold text-[var(--color-muted-foreground)]">PROFIL BAJA</label>
-            <select value={profile} onChange={(e) => setProfile(e.target.value as any)} className="w-full p-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-secondary)]">
+            <select value={profile} onChange={(e) => setProfile(e.target.value as "IWF" | "HBeam" | "Hollow")} className="w-full p-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-secondary)]">
               <option value="IWF">Baja IWF (Optimal Lentur)</option>
               <option value="HBeam">Baja H-Beam (Paling Kokoh)</option>
               <option value="Hollow">Baja Hollow (Ringan)</option>
@@ -56,7 +56,7 @@ export function SteelBeamSim() {
         <div className="grid grid-cols-3 gap-4">
           <MetricDisplay label="Momen Maksimal" value={result.maxMomen} unit="kNm" status="neutral" />
           <MetricDisplay label="Gaya Geser" value={result.maxGeser} unit="kN" status="neutral" />
-          <MetricDisplay label="Lendutan (Melengkung)" value={result.maxDeflection} unit="mm" status={result.status as any} />
+          <MetricDisplay label="Lendutan (Melengkung)" value={result.maxDeflection} unit="mm" status={result.status} />
         </div>
 
         {/* Chart */}
@@ -75,7 +75,7 @@ export function SteelBeamSim() {
         </div>
 
         {/* Status */}
-        <StatusBadge status={result.status as any}>{result.msg}</StatusBadge>
+        <StatusBadge status={result.status}>{result.msg}</StatusBadge>
       </div>
     </div>
   )

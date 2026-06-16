@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react"
-import { calculateSchedule } from "@/lib/physics/models"
 import { MetricDisplay } from "@/components/shared/MetricDisplay"
 import { StatusBadge } from "@/components/shared/StatusBadge"
+import { useState, useMemo } from "react"
+import { calculateSchedule } from "@/lib/physics/models"
 import { motion } from "framer-motion"
 import { Settings2 } from "lucide-react"
 
@@ -19,7 +19,7 @@ export function SchedulingSim() {
         </div>
       </motion.div>
       <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
-        <MetricDisplay label="Total Durasi Proyek" value={result.totalDuration} unit="Hari Kerja" status={result.status as any} />
+        <MetricDisplay label="Total Durasi Proyek" value={result.totalDuration} unit="Hari Kerja" status={result.status} />
         
         {/* Gantt Chart UI */}
         <div className="flex-1 min-h-[300px] border border-[var(--color-border)] rounded-xl bg-[var(--color-card)] p-4 shadow-sm flex flex-col">
@@ -56,7 +56,7 @@ export function SchedulingSim() {
             </div>
           </div>
         </div>
-        <StatusBadge status={result.status as any}>{result.msg}</StatusBadge>
+        <StatusBadge status={result.status}>{result.msg}</StatusBadge>
       </div>
     </div>
   )
