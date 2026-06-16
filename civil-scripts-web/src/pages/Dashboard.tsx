@@ -23,7 +23,7 @@ export function Dashboard() {
             dalam Genggaman Anda.
           </h1>
           <p className="text-base md:text-lg text-[var(--color-muted-foreground)] leading-relaxed max-w-2xl">
-            Tinggalkan tabel dan grafik statis. Jelajahi 10 modul interaktif yang mensimulasikan hukum fisika konstruksi secara real-time—dari gedung pencakar langit hingga mekanika tanah.
+            Tinggalkan tabel dan grafik statis. Eksplorasi tools interaktif yang mensimulasikan hukum fisika konstruksi secara real-time—dari gedung pencakar langit hingga mekanika tanah.
           </p>
         </motion.div>
       </section>

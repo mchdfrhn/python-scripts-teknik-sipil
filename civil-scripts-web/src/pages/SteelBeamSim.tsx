@@ -1,3 +1,4 @@
+import { MethodModal } from "@/components/shared/MethodModal"
 import { useState, useMemo } from "react"
 import { calculateBeam } from "@/lib/physics/models"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
@@ -5,7 +6,8 @@ import { motion } from "framer-motion"
 import { Settings2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function SteelBeamSim() {
+export function SteelBeamSim() { 
+  const [showMethodModal, setShowMethodModal] = useState(false);
   const [length, setLength] = useState(10)
   const [load, setLoad] = useState(50)
   const [profile, setProfile] = useState<"WF200" | "WF300" | "WF400">("WF200")
@@ -41,7 +43,7 @@ export function SteelBeamSim() {
           <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
             <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Desain Balok Baja I-WF</p>
             <p className="text-[var(--color-muted-foreground)] leading-relaxed">Pengecekan kapasitas momen, geser, dan lendutan balok baja (simply supported) menahan beban terpusat di tengah bentang.</p>
-            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30">METODE: SNI 1729:2020 (LRFD)</span></div>
+            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30 cursor-pointer hover:bg-civil-500/30 hover:border-civil-500/50 select-none transition-colors" onClick={() => setShowMethodModal(true)}>METODE: SNI 1729:2020 (LRFD)</span></div>
           </div>
 
           <div className="space-y-3">
@@ -172,6 +174,7 @@ export function SteelBeamSim() {
           </motion.div>
         </div>
       </div>
-    </div>
+      <MethodModal isOpen={showMethodModal} onClose={() => setShowMethodModal(false)} method="steel_beam" />
+      </div>
   )
 }

@@ -1,10 +1,12 @@
+import { MethodModal } from "@/components/shared/MethodModal"
 import { useState, useMemo } from "react"
 import { calculateSoilBearing } from "@/lib/physics/models"
 import { motion } from "framer-motion"
 import { Settings2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function SoilBearingSim() {
+export function SoilBearingSim() { 
+  const [showMethodModal, setShowMethodModal] = useState(false);
   const [width, setWidth] = useState(1.0)
   const [cohesion, setCohesion] = useState(20)
   const [phi, setPhi] = useState(15)
@@ -21,7 +23,7 @@ export function SoilBearingSim() {
           <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
             <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Kapasitas Dukung Tanah</p>
             <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung daya dukung ultimit dan izin pondasi dangkal berdasarkan teori Meyerhof.</p>
-            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30">METODE: TERZAGHI & MEYERHOF</span></div>
+            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30 cursor-pointer hover:bg-civil-500/30 hover:border-civil-500/50 select-none transition-colors" onClick={() => setShowMethodModal(true)}>METODE: TERZAGHI & MEYERHOF</span></div>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -142,6 +144,7 @@ export function SoilBearingSim() {
           </motion.div>
         </div>
       </div>
-    </div>
+      <MethodModal isOpen={showMethodModal} onClose={() => setShowMethodModal(false)} method="soil_bearing" />
+      </div>
   )
 }

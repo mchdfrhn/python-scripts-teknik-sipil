@@ -25,7 +25,7 @@ export function AppNavbar({ isDark, onToggleTheme }: NavbarProps) {
                 C
               </div>
               <span className="font-[var(--font-display)] font-bold text-lg tracking-tight hidden sm:block text-[var(--color-foreground)]">
-                Civil Scripts<span className="text-civil-500">.</span>
+                My Civil Tools<span className="text-civil-500">.</span>
               </span>
             </NavLink>
           </div>

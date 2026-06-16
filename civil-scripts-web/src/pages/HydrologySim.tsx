@@ -1,3 +1,4 @@
+import { MethodModal } from "@/components/shared/MethodModal"
 import { useState, useMemo } from "react"
 import { calculateHydrology } from "@/lib/physics/models"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
@@ -5,7 +6,8 @@ import { motion } from "framer-motion"
 import { Settings2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function HydrologySim() {
+export function HydrologySim() { 
+  const [showMethodModal, setShowMethodModal] = useState(false);
   const [rainIntensity, setRainIntensity] = useState(100)
   const [area, setArea] = useState(10)
   const [runoffCoef, setRunoffCoef] = useState(0.7)
@@ -22,7 +24,7 @@ export function HydrologySim() {
           <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
             <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Analisis Debit Puncak (Metode Rasional)</p>
             <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung Debit Limpasan (Runoff) maksimal akibat intensitas curah hujan berdasarkan Metode Rasional.</p>
-            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30">METODE: RASIONAL (Q = C.I.A)</span></div>
+            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30 cursor-pointer hover:bg-civil-500/30 hover:border-civil-500/50 select-none transition-colors" onClick={() => setShowMethodModal(true)}>METODE: RASIONAL (Q = C.I.A)</span></div>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -119,6 +121,7 @@ export function HydrologySim() {
           </motion.div>
         </div>
       </div>
-    </div>
+      <MethodModal isOpen={showMethodModal} onClose={() => setShowMethodModal(false)} method="hydrology" />
+      </div>
   )
 }

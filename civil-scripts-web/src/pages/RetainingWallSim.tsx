@@ -1,10 +1,12 @@
+import { MethodModal } from "@/components/shared/MethodModal"
 import { useState, useMemo } from "react"
 import { calculateRetainingWall } from "@/lib/physics/models"
 import { motion } from "framer-motion"
 import { Settings2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function RetainingWallSim() {
+export function RetainingWallSim() { 
+  const [showMethodModal, setShowMethodModal] = useState(false);
   const [height, setHeight] = useState(5)
   const [soilType, setSoilType] = useState<"pasir" | "lempung">("pasir")
 
@@ -20,7 +22,7 @@ export function RetainingWallSim() {
           <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
             <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Dinding Penahan Tanah</p>
             <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung stabilitas guling dan geser pada dinding penahan tanah tipe kantilever.</p>
-            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30">METODE: TEORI RANKINE</span></div>
+            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30 cursor-pointer hover:bg-civil-500/30 hover:border-civil-500/50 select-none transition-colors" onClick={() => setShowMethodModal(true)}>METODE: TEORI RANKINE</span></div>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -139,6 +141,7 @@ export function RetainingWallSim() {
           </motion.div>
         </div>
       </div>
-    </div>
+      <MethodModal isOpen={showMethodModal} onClose={() => setShowMethodModal(false)} method="retaining_wall" />
+      </div>
   )
 }
