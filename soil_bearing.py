@@ -11,7 +11,7 @@ def page_soil_bearing():
         st.subheader("Parameter Tanah & Pondasi")
         width = st.slider("Lebar Pondasi (m)", 0.5, 3.0, 1.0, step=0.1)
         cohesion = st.slider("Kohesi Tanah, c (kPa)", 0.0, 100.0, 20.0)
-        phi = st.slider("Sudut Geser Dalam, $\phi$ (derajat)", 0.0, 45.0, 15.0)
+        phi = st.slider(r"Sudut Geser Dalam, $\phi$ (derajat)", 0.0, 45.0, 15.0)
         
         # Meyerhof calculations
         gamma = 18.0 # kN/m3

@@ -45,7 +45,7 @@ def page_retaining_wall():
         e = (base_width / 2.0) - ((resisting_moment - overturning_moment) / w_concrete)
         q_max = (w_concrete / base_width) * (1.0 + (6.0 * e) / base_width)
         
-        st.info(f"""
+        st.info(r"""
         📊 **Gaya Bekerja:**
         - **Gaya Dorong Aktif (Pa):** {Pa:.1f} kN/m
         - **Berat Dinding (W):** {w_concrete:.1f} kN/m
@@ -53,7 +53,7 @@ def page_retaining_wall():
         ⚠️ **Metrik Kestabilan (Target $\ge 1.5$):**
         - **SF Guling:** {sf_overturning:.2f}
         - **SF Geser:** {sf_sliding:.2f}
-        """)
+        """.format(Pa=Pa, w_concrete=w_concrete, sf_overturning=sf_overturning, sf_sliding=sf_sliding))
         
     with col2:
         st.subheader("Visualisasi dan Pengecekan Kestabilan")

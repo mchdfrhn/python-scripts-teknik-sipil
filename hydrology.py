@@ -25,11 +25,11 @@ def page_hydrology():
         # Rational Method Calculation
         peak_discharge = 0.278 * runoff_coef * rain_intensity * area
         
-        st.info(f"""
+        st.info(r"""
         **Rumus Rasional:**
         $Q = 0.278 \cdot C \cdot I \cdot A$
         $Q$ = {peak_discharge:.1f} m³/s
-        """)
+        """.format(peak_discharge=peak_discharge))
         
     with col2:
         # Synthetic Hydrograph

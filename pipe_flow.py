@@ -26,11 +26,11 @@ def page_pipe_flow():
         initial_head = 10.0
         final_head = initial_head - head_loss
         
-        st.info(f"""
+        st.info(r"""
         **Persamaan Hazen-Williams:**
-        $h_f = 10.67 \cdot L \cdot \\frac{{(Q/C)^{{1.852}}}}{{D^{{4.87}}}}$
+        $h_f = 10.67 \cdot L \cdot \frac{{(Q/C)^{{1.852}}}}{{D^{{4.87}}}}$
         $h_f$ = {head_loss:.2f} meter
-        """)
+        """.format(head_loss=head_loss))
         
     with col2:
         distances = np.linspace(0, length, 11)
