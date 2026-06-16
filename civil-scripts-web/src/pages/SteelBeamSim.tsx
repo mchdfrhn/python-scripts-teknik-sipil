@@ -13,8 +13,14 @@ export function SteelBeamSim() {
   const [chartMode, setChartMode] = useState<"def" | "bmd" | "sfd">("def")
 
   const result = useMemo(() => calculateBeam(length, load, profile, material), [length, load, profile, material])
-
-  const yDomainProp = chartMode === "def" ? [-100, 100] : ['auto', 'auto'];
+  
+  const yDomainProp = useMemo(() => {
+    if (chartMode === "def") return [-Math.max(100, Math.abs(result.maxDeflection) * 1.5), 100];
+    const maxBmd = Math.max(...result.points.map(p => p.bmd));
+    if (chartMode === "bmd") return [0, Math.max(10, maxBmd * 1.2)];
+    const maxSfd = Math.max(...result.points.map(p => Math.abs(p.sfd)));
+    return [-Math.max(10, maxSfd * 1.2), Math.max(10, maxSfd * 1.2)];
+  }, [result, chartMode]);
 
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
@@ -97,9 +103,9 @@ export function SteelBeamSim() {
       <div className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Main Chart Area */}
-        <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-32 pt-24">
+        <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-40 pt-32">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={result.points}>
+            <LineChart data={result.points} key={chartMode}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="x" stroke="var(--color-muted-foreground)" />
               <YAxis domain={yDomainProp as any} stroke="var(--color-muted-foreground)" />
@@ -108,7 +114,7 @@ export function SteelBeamSim() {
               <Line 
                 type="monotone" 
                 dataKey={chartMode} 
-                stroke={chartMode === "def" ? "var(--color-civil-500)" : chartMode === "bmd" ? "var(--color-warning)" : "var(--color-destructive)"} 
+                stroke={chartMode === "def" ? "var(--color-civil-500)" : chartMode === "bmd" ? "#f59e0b" : "var(--color-destructive)"} 
                 strokeWidth={4} 
                 dot={false} 
                 isAnimationActive={false} 

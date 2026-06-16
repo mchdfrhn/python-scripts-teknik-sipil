@@ -51,7 +51,7 @@ export function SoilBearingSim() {
       <div className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Simple visual representation */}
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-4 pb-32">
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-4 pb-40 pt-28">
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, var(--color-foreground) 0, var(--color-foreground) 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }} />
           
           <div className="relative flex flex-col items-center">

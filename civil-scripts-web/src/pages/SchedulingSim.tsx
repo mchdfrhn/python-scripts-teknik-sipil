@@ -52,7 +52,7 @@ export function SchedulingSim() {
       <div className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Gantt Chart UI */}
-        <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-32 pt-24 overflow-y-auto">
+        <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-40 pt-28 overflow-y-auto flex flex-col justify-center">
           <div className="flex-1 w-full max-w-4xl mx-auto min-h-[300px] border border-[var(--color-border)] rounded-xl bg-[var(--color-card)] p-4 md:p-6 shadow-sm flex flex-col">
             <h3 className="text-sm font-bold text-center mb-6 text-[var(--color-muted-foreground)]">GANTT CHART & JALUR KRITIS (CPM)</h3>
             

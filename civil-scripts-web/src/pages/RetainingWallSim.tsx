@@ -41,7 +41,7 @@ export function RetainingWallSim() {
       <div className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Simple visual representation */}
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-4 pt-16 pb-32">
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-4 pt-32 pb-40">
           <div className="relative flex-1 w-full max-w-2xl border border-[var(--color-border)] rounded-xl bg-[var(--color-card)] shadow-sm flex items-end justify-center pb-12 overflow-hidden">
             {/* Soil */}
             <div className="absolute right-0 bottom-0 h-1/2 w-1/2 bg-amber-900/20 dark:bg-amber-900/40 rounded-tl-xl border-t border-l border-amber-900/30">

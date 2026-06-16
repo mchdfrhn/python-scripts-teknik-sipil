@@ -42,7 +42,7 @@ export function TrafficSim() {
       <div className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Animated Traffic Simulation */}
-        <div className="absolute inset-0 w-full h-full bg-zinc-900 dark:bg-zinc-950 flex flex-col justify-center overflow-hidden pb-32">
+        <div className="absolute inset-0 w-full h-full bg-zinc-900 dark:bg-zinc-950 flex flex-col justify-center overflow-hidden pb-40 pt-28">
           <div className="relative w-full flex flex-col justify-center gap-2">
             {Array.from({length: lanes}).map((_, laneIdx) => (
               <div key={laneIdx} className="h-16 w-full bg-zinc-800 border-y border-dashed border-zinc-600 relative overflow-hidden">

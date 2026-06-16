@@ -52,8 +52,8 @@ export function WindLoadSim() {
       <div className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Main Chart Area */}
-        <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-32 pt-24 flex items-center justify-center">
-          <ResponsiveContainer width="90%" height="100%">
+        <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-32 pt-32 flex items-center justify-center">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={result.pressureList} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
               <XAxis type="number" stroke="var(--color-muted-foreground)" />
