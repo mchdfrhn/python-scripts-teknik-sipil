@@ -9,15 +9,15 @@ import { Play, Square, Settings2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const MATERIALS: { value: EarthquakeParams["material"]; label: string; desc: string }[] = [
-  { value: "unreinforced", label: "Beton Biasa (Tanpa Besi Tulangan)", desc: "Sangat rapuh saat ditarik/digoyang ke samping (mudah patah)." },
-  { value: "reinforced", label: "Beton Bertulang (Standar Gedung Modern)", desc: "Menggunakan besi di dalamnya untuk menahan gaya tarik saat digoyang." },
-  { value: "damped", label: "Rangka Baja & Peredam Goyangan (Teknologi Canggih)", desc: "Bertindak seperti suspensi mobil yang menyerap energi getaran gempa." },
+  { value: "SRPMB", label: "Sistem Rangka Pemikul Momen Biasa (R=3)", desc: "Sistem struktur beton standar. Kurang daktail (kaku) menghadapi gempa besar." },
+  { value: "SRPMM", label: "Sistem Rangka Pemikul Momen Menengah (R=5)", desc: "Sistem struktur dengan tingkat daktilitas menengah." },
+  { value: "SRPMK", label: "Sistem Rangka Pemikul Momen Khusus (R=8)", desc: "Sistem struktur sangat daktail. Wajib untuk daerah zona gempa kuat menurut SNI 1726." },
 ]
 
 export function EarthquakeSim() {
   const [floors, setFloors] = useState(10)
-  const [material, setMaterial] = useState<EarthquakeParams["material"]>("reinforced")
-  const [magnitude, setMagnitude] = useState(6.0)
+  const [material, setMaterial] = useState<EarthquakeParams["material"]>("SRPMK")
+  const [magnitude, setMagnitude] = useState(6.0) // This maps to SDS 0.1g - 1.5g
 
   const [isAnimating, setIsAnimating] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -31,15 +31,7 @@ export function EarthquakeSim() {
 
   const currentAmplitude = result.amplitudeAt(currentTime)
   const currentDeflections = result.deflectionsAt(currentTime)
-  const safety = getEarthquakeStatus(currentAmplitude, material)
-
-  const peakAmplitude = useMemo(() => {
-    let peak = 0
-    for (let t = 0; t <= 8; t += 0.05) {
-      peak = Math.max(peak, Math.abs(result.amplitudeAt(t)))
-    }
-    return peak
-  }, [result])
+  const safety = getEarthquakeStatus(result.maxDrift, result.allowableDrift, material)
 
   const startAnimation = useCallback(() => {
     setIsAnimating(true)
@@ -203,17 +195,17 @@ export function EarthquakeSim() {
         animate={{ x: 0, opacity: 1 }}
         className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50"
       >
-        <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
+            <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
           <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2">
-            <Settings2 size={18} className="text-civil-500" /> Parameter Gempa
+            <Settings2 size={18} className="text-civil-500" /> Parameter Gempa (SNI 1726)
           </h2>
         </div>
             
             <div className="p-5 overflow-y-auto flex-1 space-y-6">
               
               <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
-                <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Mengapa ini penting?</p>
-                <p className="text-[var(--color-muted-foreground)] leading-relaxed">Saat gempa, tanah bergoyang ke samping. Gedung harus dirancang fleksibel namun kokoh agar tidak runtuh. Uji seberapa kuat pilihan struktur Anda!</p>
+                <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Analisis Statik Ekuivalen</p>
+                <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung Gaya Geser Dasar ($V$) dan Simpangan Antar Lantai (Story Drift) berdasarkan Kategori Sistem Penahan Gaya Seismik SNI 1726.</p>
               </div>
 
               {/* Floors */}
@@ -262,8 +254,8 @@ export function EarthquakeSim() {
               {/* Magnitude */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Kekuatan Gempa</label>
-                  <span className="text-sm font-mono font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded">M {magnitude.toFixed(1)}</span>
+                  <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Percepatan Spektral (SDS)</label>
+                  <span className="text-sm font-mono font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded">{((magnitude / 10) * 1.5).toFixed(2)} g</span>
                 </div>
                 <input
                   type="range" min={1} max={10} step={0.5} value={magnitude}
@@ -303,15 +295,15 @@ export function EarthquakeSim() {
         {/* HUD Metrics - Floating Top Right */}
         <div className="absolute top-4 right-4 z-10 flex gap-3 pointer-events-none">
           <div className="glass-panel px-4 py-2 rounded-lg flex flex-col items-end">
-            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Max Simpangan</span>
-            <span className={cn("font-mono font-bold text-lg", peakAmplitude > 6 ? "text-destructive" : peakAmplitude > 4 ? "text-warning" : "text-safe")}>
-              {peakAmplitude.toFixed(2)}m
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Base Shear (Gaya Geser Dasar)</span>
+            <span className="font-mono font-bold text-lg text-destructive">
+              {result.baseShear.toFixed(0)} kN
             </span>
           </div>
           <div className="glass-panel px-4 py-2 rounded-lg flex flex-col items-end">
-            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Redaman</span>
-            <span className="font-mono font-bold text-lg text-civil-500">
-              {(result.damping * 100).toFixed(0)}%
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Simpangan Atap Maks / Izin</span>
+            <span className={cn("font-mono font-bold text-lg", result.maxDrift > result.allowableDrift ? "text-destructive" : "text-safe")}>
+              {result.maxDrift.toFixed(2)}m / {result.allowableDrift.toFixed(2)}m
             </span>
           </div>
         </div>

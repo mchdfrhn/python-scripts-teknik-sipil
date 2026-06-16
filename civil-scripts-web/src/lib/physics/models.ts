@@ -5,46 +5,91 @@ export type StatusType = "safe" | "warning" | "danger" | "neutral";
 // ==========================================
 // 1. STEEL BEAM (Kelenturan Balok & Jembatan)
 // ==========================================
-export function calculateBeam(length: number, load: number, profile: "IWF" | "HBeam" | "Hollow") {
-  // Simplified calculation for simply supported beam with point load at center
-  const E = 200000 // MPa
-  let I = 50000000 // mm^4
-  if (profile === "HBeam") I = 80000000
-  if (profile === "Hollow") I = 20000000
+export function calculateBeam(length: number, load: number, profileType: "WF200" | "WF300" | "WF400", material: "BJ37" | "BJ41" | "BJ50" = "BJ37") {
+  // Standar SNI 1729:2020 / AISC 360-16
+  const E = 200000; // Modulus Elastisitas Baja (MPa)
+  
+  // Database Profil WF (H x B x tw x tf)
+  // Ix dalam mm^4, Zx (Modulus Plastis) dalam mm^3, Aw (Area Web) dalam mm^2
+  const PROFILES = {
+    WF200: { h: 200, tw: 5.5, Ix: 18400000, Zx: 200000, label: "WF 200x100" },
+    WF300: { h: 300, tw: 6.5, Ix: 72100000, Zx: 514000, label: "WF 300x150" },
+    WF400: { h: 400, tw: 8.0, Ix: 237000000, Zx: 1286000, label: "WF 400x200" }
+  };
+  
+  const MATERIALS = {
+    BJ37: 240, // Fy dalam MPa
+    BJ41: 250,
+    BJ50: 290
+  };
 
-  const L_mm = length * 1000
-  const maxMomen = (load * length) / 4 // kNm
-  const maxGeser = load / 2 // kN
-  const maxDeflection = (load * 1000 * Math.pow(L_mm, 3)) / (48 * E * I) // mm
+  const p = PROFILES[profileType];
+  const Fy = MATERIALS[material];
 
-  const points = []
+  // Kapasitas Penampang (Asumsi Fully Braced / Compact Section)
+  const phi_b = 0.90;
+  const phi_v = 1.00; // Asumsi web memenuhi batas tekuk geser
+  
+  const Mn = p.Zx * Fy; // N.mm
+  const phiMn_kNm = (phi_b * Mn) / 1e6; // Kapasitas Momen Desain (kNm)
+  
+  const Aw = p.h * p.tw; // Luas web efektif mm2
+  const Vn = 0.6 * Fy * Aw; // N
+  const phiVn_kN = (phi_v * Vn) / 1000; // Kapasitas Geser Desain (kN)
+
+  // Analisis Struktur Statis Tertentu (Beban Terpusat di Tengah Bentang)
+  const L_mm = length * 1000;
+  const maxMomen_kNm = (load * length) / 4; // Mu (kNm)
+  const maxGeser_kN = load / 2; // Vu (kN)
+  
+  // P = load (kN), dikali 1000 jadi N
+  const maxDeflection_mm = (load * 1000 * Math.pow(L_mm, 3)) / (48 * E * p.Ix);
+
+  const points = [];
   for (let x = 0; x <= length; x += 0.5) {
-    const sfd = x < length / 2 ? maxGeser : -maxGeser
-    const bmd = x <= length / 2 ? (load / 2) * x : (load / 2) * (length - x)
-    // Deflection curve for point load at center
+    const sfd = x < length / 2 ? maxGeser_kN : (x > length / 2 ? -maxGeser_kN : 0);
+    const bmd = x <= length / 2 ? (load / 2) * x : (load / 2) * (length - x);
     let def;
-    const x_mm = x * 1000
+    const x_mm = x * 1000;
     if (x_mm <= L_mm / 2) {
-      def = ((load * 1000 * x_mm) / (48 * E * I)) * (3 * L_mm * L_mm - 4 * x_mm * x_mm)
+      def = ((load * 1000 * x_mm) / (48 * E * p.Ix)) * (3 * L_mm * L_mm - 4 * x_mm * x_mm);
     } else {
-      const x_prime = L_mm - x_mm
-      def = ((load * 1000 * x_prime) / (48 * E * I)) * (3 * L_mm * L_mm - 4 * x_prime * x_prime)
+      const x_prime = L_mm - x_mm;
+      def = ((load * 1000 * x_prime) / (48 * E * p.Ix)) * (3 * L_mm * L_mm - 4 * x_prime * x_prime);
     }
-    points.push({ x, sfd, bmd, def: -def }) // def negative means downward
+    points.push({ x, sfd, bmd, def: -def });
   }
 
-  let status: StatusType = "safe"
-  let msg = "Lendutan balok masih dalam batas aman."
-  const limit = L_mm / 360
-  if (maxDeflection > limit) {
-    status = "danger"
-    msg = `BAHAYA: Balok melengkung terlalu tajam (${maxDeflection.toFixed(1)}mm > Batas ${limit.toFixed(1)}mm).`
-  } else if (maxDeflection > limit * 0.8) {
-    status = "warning"
-    msg = `WASPADA: Lendutan balok mendekati batas izin.`
+  let status: StatusType = "safe";
+  let msg = "Desain memenuhi standar SNI 1729 (Kapasitas Momen, Geser, & Lendutan AMAN).";
+  
+  const limitDeflection = L_mm / 360; // L/360 untuk beban hidup
+  
+  if (maxMomen_kNm > phiMn_kNm) {
+    status = "danger";
+    msg = `BAHAYA LENTUR: Momen terjadi (${maxMomen_kNm.toFixed(1)} kNm) melebihi Kapasitas Desain Baja (ϕMn = ${phiMn_kNm.toFixed(1)} kNm)! Profil akan mengalami Yielding / Leleh.`;
+  } else if (maxGeser_kN > phiVn_kN) {
+    status = "danger";
+    msg = `BAHAYA GESER: Gaya Geser (${maxGeser_kN.toFixed(1)} kN) melebihi Kapasitas Geser Web Baja (ϕVn = ${phiVn_kN.toFixed(1)} kN).`;
+  } else if (maxDeflection_mm > limitDeflection) {
+    status = "warning"; // Biasanya lendutan itu serviceability limit state, bukan collapse
+    msg = `WASPADA LENDUTAN: Struktur masih kuat, namun lendutan (${maxDeflection_mm.toFixed(1)} mm) melampaui batas izin (L/360 = ${limitDeflection.toFixed(1)} mm).`;
+  } else if (maxMomen_kNm > phiMn_kNm * 0.8) {
+    status = "warning";
+    msg = `WASPADA: Rasio tegangan lentur sudah mencapai ${(maxMomen_kNm/phiMn_kNm*100).toFixed(0)}%. Kapasitas hampir maksimal.`;
   }
 
-  return { maxMomen, maxGeser, maxDeflection, points, status, msg }
+  return { 
+    maxMomen: maxMomen_kNm, 
+    maxGeser: maxGeser_kN, 
+    maxDeflection: maxDeflection_mm, 
+    phiMn: phiMn_kNm,
+    phiVn: phiVn_kN,
+    limitDeflection,
+    points, 
+    status, 
+    msg 
+  };
 }
 
 // ==========================================

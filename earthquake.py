@@ -4,93 +4,120 @@ import matplotlib.pyplot as plt
 import time
 
 def page_earthquake():
-    st.header("🏗️ Simulasi Gedung Tahan Gempa")
+    st.header("🏗️ Simulasi Gempa Gedung (SNI 1726)")
     st.write("""
-    **Mengapa simulasi ini penting bagi Anda?**  
-    Saat gempa bumi terjadi, tanah akan bergoyang ke samping. Gedung bertingkat harus dirancang fleksibel tetapi kokoh agar goyangan tersebut tidak meruntuhkan tiang penopang bangunan. Mari uji seberapa kuat pilihan struktur bangunan Anda!
+    **Analisis Statik Ekuivalen Berdasarkan SNI 1726:2019**  
+    Simulasi ini menghitung Gaya Geser Dasar Seismik ($V$) dan Simpangan Atap Maksimal (Roof Drift) menggunakan parameter respons spektrum, Sistem Penahan Gaya Seismik ($R$), dan mengecek batasan izin simpangan bangunan.
     """)
     
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        st.subheader("Pengaturan Bangunan & Gempa")
-        tinggi = st.slider("Tinggi Gedung (Jumlah Lantai)", 3, 20, 10, key="eq_tinggi", help="Makin tinggi gedung, goyangan di lantai atas akan makin terasa.")
-        material = st.selectbox("Bahan Utama Struktur", [
-            "Beton Biasa (Tanpa Besi Tulangan)", 
-            "Beton Bertulang (Standar Gedung Modern)", 
-            "Rangka Baja & Peredam Goyangan (Teknologi Canggih)"
+        st.subheader("Parameter Gedung & Gempa")
+        tinggi = st.slider("Jumlah Lantai Gedung", 3, 20, 10, key="eq_tinggi", help="Tinggi asumsi per lantai adalah 4 meter.")
+        material = st.selectbox("Sistem Penahan Gaya Seismik", [
+            "Rangka Beton Pemikul Momen Khusus (SRPMK, R=8)",
+            "Rangka Beton Pemikul Momen Menengah (SRPMM, R=5)",
+            "Rangka Beton Pemikul Momen Biasa (SRPMB, R=3)" 
         ])
-        magnitudo = st.slider("Kekuatan Gempa (Skala Richter)", 1.0, 10.0, 6.0, step=0.5, help="Skala kekuatan gempa bumi yang terjadi di bawah tanah.")
         
-        st.info("""
-        💡 **Info Sipil untuk Awam:**
-        * **Beton Biasa** sangat rapuh saat ditarik/digoyang ke samping (mudah patah).
-        * **Beton Bertulang** menggunakan besi di dalamnya untuk menahan gaya tarik saat digoyang.
-        * **Peredam Goyangan** bertindak seperti suspensi mobil yang menyerap energi getaran gempa.
+        magnitudo_slider = st.slider("Kekuatan Gempa (Setara Percepatan SDS)", 1.0, 10.0, 6.0, step=0.5, help="Angka simulasi ini akan dipetakan ke nilai Spektrum Respons Desain (SDS).")
+        
+        # Mapping properties
+        if "SRPMK" in material:
+            R = 8.0
+            Cd = 5.5
+            damping = 0.05
+        elif "SRPMM" in material:
+            R = 5.0
+            Cd = 4.5
+            damping = 0.05
+        else:
+            R = 3.0
+            Cd = 2.5
+            damping = 0.05
+            
+        Sds = (magnitudo_slider / 10.0) * 1.5 # 0.15g to 1.5g
+        Ie = 1.0 # Faktor Keutamaan
+        
+        st.info(f"""
+        💡 **Parameter Analisis:**
+        * **SDS** = {Sds:.2f} g
+        * **Faktor Modifikasi (R)** = {R}
+        * **Faktor Pembesaran (Cd)** = {Cd}
         """)
         
-    # Set damping and stiffness parameters based on material choice
-    if material == "Beton Biasa (Tanpa Besi Tulangan)":
-        damping = 0.02  # Sangat rendah meredam
-        kekakuan = 15.0 # Kaku tapi rapuh
-    elif material == "Beton Bertulang (Standar Gedung Modern)":
-        damping = 0.07  # Cukup baik meredam
-        kekakuan = 10.0 # Elastisitas sedang
-    else:
-        damping = 0.25  # Meredam sangat cepat
-        kekakuan = 5.0  # Sangat fleksibel & aman
-    
     with col2:
         plot_placeholder = st.empty()
         status_placeholder = st.empty()
         
-        # Helper function to plot building
+        # SNI 1726 Calculations
+        floor_height = 4.0
+        hn = tinggi * floor_height
+        W = tinggi * 2500.0 # kN
+        
+        Cs = Sds / (R / Ie)
+        if Cs < 0.044 * Sds * Ie:
+            Cs = 0.044 * Sds * Ie
+            
+        V_base = Cs * W
+        
+        # Empirical approximation for demonstration
+        Delta_elastic = (Cs * hn) / 20.0 
+        max_drift = (Cd * Delta_elastic) / Ie
+        allowable_drift = 0.020 * hn
+        
+        # For animation physics
+        T_period = 0.0466 * (hn ** 0.9)
+        freq = 1.0 / T_period
+        
         def plot_building(amplitude_t, t_val=0):
             fig, ax = plt.subplots(figsize=(5, 6))
             ax.axhline(0, color='black', lw=3)
             
-            y_coords = np.linspace(0, tinggi * 3, tinggi + 1)
-            # Deflection curve shape: quadratic distribution over height
-            x_coords = amplitude_t * (y_coords / y_coords[-max(1, int(tinggi/2))])**2
+            y_coords = np.linspace(0, hn, tinggi + 1)
+            # Mode shape approximation: y^1.5
+            x_coords = amplitude_t * ((y_coords / hn) ** 1.5)
             
-            offset = 1.5
-            # Draw left column, right column, and floor slabs
-            ax.plot(x_coords - offset, y_coords, color='#FF4B4B', lw=4, marker='o', label="Tiang Kiri Gedung")
-            ax.plot(x_coords + offset, y_coords, color='#FF4B4B', lw=4, marker='o', label="Tiang Kanan Gedung")
+            offset = 2.0
+            # Draw columns and floor slabs
+            ax.plot(x_coords - offset, y_coords, color='#0068C9', lw=4, marker='o')
+            ax.plot(x_coords + offset, y_coords, color='#0068C9', lw=4, marker='o')
             for y_val, x_val in zip(y_coords, x_coords):
-                ax.plot([x_val - offset, x_val + offset], [y_val, y_val], color='gray', linestyle='--', alpha=0.5)
+                ax.plot([x_val - offset, x_val + offset], [y_val, y_val], color='gray', linestyle='-', alpha=0.8, lw=3)
             
-            ax.set_xlim(-15, 15)
-            ax.set_ylim(-1, (tinggi * 3) + 5)
-            ax.set_xlabel("Simpangan / Geser Goyangan (Meter)")
+            ax.set_xlim(-10, 10)
+            ax.set_ylim(-1, hn + 5)
+            ax.set_xlabel("Simpangan Atap (Meter)")
             ax.set_ylabel("Tinggi Gedung (Meter)")
-            ax.set_title(f"Goyangan Gedung Saat Gempa (Waktu: {t_val:.2f} detik)")
+            ax.set_title(f"Goyangan Gempa | t = {t_val:.2f}s | Base Shear = {V_base:.0f} kN")
             ax.grid(True, linestyle=':', alpha=0.6)
-            ax.legend()
             return fig
             
         # Draw initial static state
         fig_init = plot_building(0.0, 0.0)
         plot_placeholder.pyplot(fig_init)
         plt.close(fig_init)
-        status_placeholder.info("💡 Klik tombol di bawah untuk menyimulasikan getaran gempa pada gedung.")
         
-        if st.button("🚀 MULAI SIMULASI GEMPA", use_container_width=True):
+        status_placeholder.info(f"👉 Klik tombol untuk melihat respon struktur. Batas izin simpangan SNI: **{allowable_drift:.2f} meter**.")
+        
+        if st.button("🚀 MULAI SIMULASI GEMPA (SNI 1726)", use_container_width=True):
             t_steps = np.linspace(0, 8, 40)
             
             for t in t_steps:
-                # Calculate movement based on physics formulas (damped sine wave)
-                amplitude = (magnitudo * (kekakuan / 10)) * np.exp(-damping * t) * np.sin(2 * np.pi * 0.5 * t)
+                # Envelope: damped harmonic
+                amplitude = max_drift * np.exp(-damping * 2.0 * t) * np.sin(2 * np.pi * freq * t)
+                
                 fig = plot_building(amplitude, t)
                 plot_placeholder.pyplot(fig)
                 plt.close(fig)
                 
-                # Check structural failure thresholds
-                if abs(amplitude) > 6.0 and material == "Beton Biasa (Tanpa Besi Tulangan)":
-                    status_placeholder.error(f"🚨 BAHAYA BESAR: Gedung runtuh total pada detik ke-{t:.2f}! Beton biasa langsung pecah karena tidak mampu menahan gaya tarik saat bergoyang (Simpangan maksimal = {abs(amplitude):.2f} meter)!")
+                # Dynamic feedback
+                if max_drift > allowable_drift * 1.5:
+                    status_placeholder.error(f"🚨 BAHAYA RUNTUH: Simpangan Atap ({max_drift:.2f}m) sangat melebihi batas izin ({allowable_drift:.2f}m). Sistem {material.split('(')[1].split(',')[0]} GAGAL MENAHAN GEMPA!")
                     break
-                elif abs(amplitude) > 4.0:
-                    status_placeholder.warning(f"⚠️ KERUSAKAN STRUKTUR: Tiang beton mengalami retak-retak parah pada detik ke-{t:.2f} (Simpangan = {abs(amplitude):.2f} meter). Gedung masih berdiri namun tidak aman dihuni.")
+                elif max_drift > allowable_drift:
+                    status_placeholder.warning(f"⚠️ TIDAK MEMENUHI SNI: Simpangan Atap ({max_drift:.2f}m) melampaui batas izin ({allowable_drift:.2f}m). Kolom retak parah.")
                 else:
-                    status_placeholder.success(f"✅ GEDUNG AMAN: Struktur bergoyang secara aman dan getaran diredam dengan cepat (Simpangan aman = {abs(amplitude):.2f} meter).")
-                time.sleep(0.04)
+                    status_placeholder.success(f"✅ MEMENUHI SNI 1726: Simpangan Atap ({max_drift:.2f}m) AMAN di bawah batas izin ({allowable_drift:.2f}m). Struktur Daktail!")
+                time.sleep(0.05)
