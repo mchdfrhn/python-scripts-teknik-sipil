@@ -1,10 +1,9 @@
-import { MetricDisplay } from "@/components/shared/MetricDisplay"
-import { StatusBadge } from "@/components/shared/StatusBadge"
 import { useState, useMemo } from "react"
 import { calculateBeam } from "@/lib/physics/models"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
 import { motion } from "framer-motion"
-import { Settings2 } from "lucide-react"
+import { Settings2, Info } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function SteelBeamSim() {
   const [length, setLength] = useState(10)
@@ -15,13 +14,13 @@ export function SteelBeamSim() {
   const result = useMemo(() => calculateBeam(length, load, profile, material), [length, load, profile, material])
 
   return (
-    <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-background)] shadow-lg flex flex-col md:flex-row">
+    <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
       
       {/* Controls Panel */}
       <motion.div 
         initial={{ x: -300, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col"
+        className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50"
       >
         <div className="p-5 border-b border-[var(--color-border)]">
           <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2">
@@ -61,37 +60,15 @@ export function SteelBeamSim() {
       </motion.div>
 
       {/* Main View */}
-      <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
-        {/* Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricDisplay 
-            label="Momen Lentur (Mu)" 
-            value={result.maxMomen} 
-            unit={`kNm / Max: ${result.phiMn.toFixed(1)}`} 
-            status={result.maxMomen > result.phiMn ? "danger" : "safe"} 
-          />
-          <MetricDisplay 
-            label="Gaya Geser (Vu)" 
-            value={result.maxGeser} 
-            unit={`kN / Max: ${result.phiVn.toFixed(1)}`} 
-            status={result.maxGeser > result.phiVn ? "danger" : "safe"} 
-          />
-          <MetricDisplay 
-            label="Lendutan Aktual" 
-            value={result.maxDeflection} 
-            unit={`mm / Izin: ${result.limitDeflection.toFixed(1)}`} 
-            status={result.maxDeflection > result.limitDeflection ? "danger" : "safe"} 
-          />
-        </div>
-
-        {/* Chart */}
-        <div className="flex-1 min-h-[300px] border border-[var(--color-border)] rounded-xl bg-[var(--color-card)] p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-center mb-4 text-[var(--color-muted-foreground)]">KURVA LENDUTAN (DEFLEKSI)</h3>
-          <ResponsiveContainer width="100%" height="80%">
+      <div className="relative flex-1 bg-[var(--color-background)]">
+        
+        {/* Main Chart Area */}
+        <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-32 pt-24">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={result.points}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="x" label={{ value: 'Posisi Bentang (m)', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Lendutan (mm)', angle: -90, position: 'insideLeft' }} />
+              <XAxis dataKey="x" stroke="var(--color-muted-foreground)" />
+              <YAxis domain={[-100, 100]} stroke="var(--color-muted-foreground)" />
               <Tooltip contentStyle={{ backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', borderRadius: '8px' }} />
               <ReferenceLine y={0} stroke="var(--color-muted-foreground)" />
               <Line type="monotone" dataKey="def" stroke="var(--color-civil-500)" strokeWidth={4} dot={false} isAnimationActive={false} />
@@ -99,8 +76,53 @@ export function SteelBeamSim() {
           </ResponsiveContainer>
         </div>
 
-        {/* Status */}
-        <StatusBadge status={result.status}>{result.msg}</StatusBadge>
+        {/* HUD Metrics - Floating Top Right */}
+        <div className="absolute top-4 right-4 z-10 flex gap-3 pointer-events-none flex-wrap justify-end">
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg flex flex-col items-end">
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">Momen Lentur (Mu)</span>
+            <span className={cn("font-mono font-bold text-lg", result.maxMomen > result.phiMn ? "text-destructive" : "text-[var(--color-foreground)]")}>
+              {result.maxMomen.toFixed(1)} <span className="text-xs text-[var(--color-muted-foreground)]">/ {result.phiMn.toFixed(1)}</span>
+            </span>
+          </div>
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg flex flex-col items-end">
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">Gaya Geser (Vu)</span>
+            <span className={cn("font-mono font-bold text-lg", result.maxGeser > result.phiVn ? "text-destructive" : "text-[var(--color-foreground)]")}>
+              {result.maxGeser.toFixed(1)} <span className="text-xs text-[var(--color-muted-foreground)]">/ {result.phiVn.toFixed(1)}</span>
+            </span>
+          </div>
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg flex flex-col items-end">
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">Lendutan Aktual</span>
+            <span className={cn("font-mono font-bold text-lg", result.maxDeflection > result.limitDeflection ? "text-destructive" : "text-[var(--color-foreground)]")}>
+              {result.maxDeflection.toFixed(1)} <span className="text-xs text-[var(--color-muted-foreground)]">/ {result.limitDeflection.toFixed(1)}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* HUD Status - Floating Bottom */}
+        <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none px-4">
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            key={result.status}
+            className={cn(
+              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 bg-[var(--color-background)]/90 backdrop-blur-md",
+              result.status === "danger" ? "border-l-destructive" : 
+              result.status === "warning" ? "border-l-warning" : "border-l-safe"
+            )}
+          >
+            <div className={cn(
+              "p-2 rounded-full",
+              result.status === "danger" ? "bg-destructive/20 text-destructive" : 
+              result.status === "warning" ? "bg-warning/20 text-warning" : "bg-safe/20 text-safe"
+            )}>
+              <Info size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm mb-1 uppercase tracking-wider">{result.status === "safe" ? "Struktur Aman" : "Peringatan Struktur"}</h3>
+              <p className="text-sm font-medium leading-relaxed text-[var(--color-foreground)]">{result.msg}</p>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   )
