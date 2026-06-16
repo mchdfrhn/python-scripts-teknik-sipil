@@ -38,6 +38,7 @@ export function Dashboard() {
               title={mod.title}
               description={mod.description}
               path={mod.path}
+              category={mod.category}
               size={mod.size as "small" | "medium" | "large"}
               delay={0.1 + (idx * 0.05)} // Stagger effect
             />
