@@ -15,27 +15,19 @@ export function AppNavbar({ isDark, onToggleTheme }: NavbarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-[var(--color-border)] glass-panel">
-        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b border-[var(--color-border)] bg-[var(--color-background)]/80 backdrop-blur-xl">
+        <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
           
           {/* Logo & Brand */}
           <div className="flex items-center gap-6">
-            <NavLink to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-civil-500 flex items-center justify-center text-white font-bold group-hover:scale-105 transition-transform">
+            <NavLink to="/" className="flex items-center gap-3 group">
+              <div className="w-8 h-8 rounded-lg bg-civil-500 flex items-center justify-center text-white font-bold group-hover:scale-105 transition-transform shadow-md shadow-civil-500/20">
                 C
               </div>
-              <span className="font-[var(--font-display)] font-bold text-lg tracking-tight hidden sm:block">
+              <span className="font-[var(--font-display)] font-bold text-lg tracking-tight hidden sm:block text-[var(--color-foreground)]">
                 Civil Scripts<span className="text-civil-500">.</span>
               </span>
             </NavLink>
-
-            {/* Desktop Quick Links */}
-            <nav className="hidden md:flex items-center gap-1">
-              <NavLink to="/" className={({isActive}) => cn("px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-[var(--color-secondary)]", isActive ? "text-[var(--color-foreground)] bg-[var(--color-secondary)]" : "text-[var(--color-muted-foreground)]")}>
-                Dashboard
-              </NavLink>
-              {/* Dropdown can go here later if needed, but keeping it clean for now */}
-            </nav>
           </div>
 
           {/* Right Actions */}
@@ -92,10 +84,15 @@ export function AppNavbar({ isDark, onToggleTheme }: NavbarProps) {
             <nav className="flex flex-col gap-2">
               <NavLink 
                 to="/" 
+                end
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-3 rounded-lg bg-[var(--color-secondary)] font-medium text-[var(--color-foreground)]"
+                className={({isActive}) => cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg font-medium",
+                  isActive ? "bg-civil-500/10 text-civil-600 dark:text-civil-400" : "bg-[var(--color-secondary)] text-[var(--color-foreground)]"
+                )}
               >
-                Dashboard
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                Beranda Dashboard
               </NavLink>
               <div className="pt-2 mt-2 border-t border-[var(--color-border)]">
                 <p className="px-4 text-xs font-semibold uppercase tracking-wider text-[var(--color-muted-foreground)] mb-2">
@@ -106,7 +103,12 @@ export function AppNavbar({ isDark, onToggleTheme }: NavbarProps) {
                     key={mod.id}
                     to={mod.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-secondary)]"
+                    className={({ isActive }) => cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors",
+                      isActive
+                        ? "bg-civil-500/10 text-civil-600 dark:text-civil-400 font-medium"
+                        : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-secondary)]"
+                    )}
                   >
                     <mod.icon size={18} />
                     {mod.title}

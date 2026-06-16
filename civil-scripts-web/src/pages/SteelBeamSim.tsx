@@ -20,7 +20,7 @@ export function SteelBeamSim() {
       <motion.div 
         initial={{ x: -300, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="z-20 w-80 glass-panel border-r border-[var(--color-border)] flex flex-col"
+        className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col"
       >
         <div className="p-5 border-b border-[var(--color-border)]">
           <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2">
@@ -53,7 +53,7 @@ export function SteelBeamSim() {
       {/* Main View */}
       <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
         {/* Metrics */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricDisplay label="Momen Maksimal" value={result.maxMomen} unit="kNm" status="neutral" />
           <MetricDisplay label="Gaya Geser" value={result.maxGeser} unit="kN" status="neutral" />
           <MetricDisplay label="Lendutan (Melengkung)" value={result.maxDeflection} unit="mm" status={result.status} />

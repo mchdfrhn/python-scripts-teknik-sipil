@@ -14,7 +14,7 @@ export function TrafficSim() {
 
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-background)] shadow-lg flex flex-col md:flex-row">
-      <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-80 glass-panel border-r border-[var(--color-border)] flex flex-col">
+      <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col">
         <div className="p-5 border-b border-[var(--color-border)]"><h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Parameter Jalan Raya</h2></div>
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
           <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">VOLUME LALU LINTAS (smp/jam)</label><span className="text-sm font-bold">{volume}</span></div><input type="range" min={500} max={600} step={100} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-full accent-civil-500" /></div>
@@ -22,7 +22,7 @@ export function TrafficSim() {
         </div>
       </motion.div>
       <div className="flex-1 flex flex-col relative p-6 overflow-y-auto space-y-6">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricDisplay label="Kapasitas Total" value={result.totalCapacity} unit="smp/jam" status="neutral" />
           <MetricDisplay label="V/C Ratio" value={result.vcr} unit="Ratio" status={result.status} />
           <MetricDisplay label="Level of Service" value={result.los} unit="LOS" status={result.status} />

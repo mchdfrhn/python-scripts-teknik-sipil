@@ -8,10 +8,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Play, Square, Settings2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const MATERIALS: { value: EarthquakeParams["material"]; label: string }[] = [
-  { value: "unreinforced", label: "Beton Biasa (Rapuh)" },
-  { value: "reinforced", label: "Beton Bertulang (Standar)" },
-  { value: "damped", label: "Baja & Peredam (Advanced)" },
+const MATERIALS: { value: EarthquakeParams["material"]; label: string; desc: string }[] = [
+  { value: "unreinforced", label: "Beton Biasa (Tanpa Besi Tulangan)", desc: "Sangat rapuh saat ditarik/digoyang ke samping (mudah patah)." },
+  { value: "reinforced", label: "Beton Bertulang (Standar Gedung Modern)", desc: "Menggunakan besi di dalamnya untuk menahan gaya tarik saat digoyang." },
+  { value: "damped", label: "Rangka Baja & Peredam Goyangan (Teknologi Canggih)", desc: "Bertindak seperti suspensi mobil yang menyerap energi getaran gempa." },
 ]
 
 export function EarthquakeSim() {
@@ -208,7 +208,7 @@ export function EarthquakeSim() {
             initial={{ x: -300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -300, opacity: 0 }}
-            className="absolute z-20 left-4 top-4 bottom-4 w-80 glass-panel rounded-[var(--radius-xl)] flex flex-col shadow-2xl"
+            className="absolute z-20 left-4 right-4 md:right-auto top-4 bottom-4 md:w-80 glass-panel rounded-[var(--radius-xl)] flex flex-col shadow-2xl"
           >
             <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
               <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2">
@@ -217,28 +217,35 @@ export function EarthquakeSim() {
             </div>
             
             <div className="p-5 overflow-y-auto flex-1 space-y-6">
+              
+              <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
+                <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Mengapa ini penting?</p>
+                <p className="text-[var(--color-muted-foreground)] leading-relaxed">Saat gempa, tanah bergoyang ke samping. Gedung harus dirancang fleksibel namun kokoh agar tidak runtuh. Uji seberapa kuat pilihan struktur Anda!</p>
+              </div>
+
               {/* Floors */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Lantai</label>
-                  <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{floors}</span>
+                  <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Tinggi Gedung</label>
+                  <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{floors} Lantai</span>
                 </div>
                 <input
                   type="range" min={3} max={20} value={floors}
                   onChange={(e) => setFloors(Number(e.target.value))}
                   className="w-full accent-civil-500"
                 />
+                <p className="text-xs text-[var(--color-muted-foreground)]">Makin tinggi gedung, goyangan di lantai atas akan makin terasa.</p>
               </div>
 
               {/* Material */}
               <div className="space-y-3">
-                <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Sistem Struktur</label>
-                <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Bahan Utama Struktur</label>
+                <div className="flex flex-col gap-3">
                   {MATERIALS.map((m) => (
                     <label key={m.value} className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                      "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
                       material === m.value 
-                        ? "border-civil-500 bg-civil-500/10 text-civil-700 dark:text-civil-300 ring-1 ring-civil-500" 
+                        ? "border-civil-500 bg-civil-500/10 ring-1 ring-civil-500" 
                         : "border-[var(--color-border)] hover:bg-[var(--color-secondary)]"
                     )}>
                       <input 
@@ -247,10 +254,13 @@ export function EarthquakeSim() {
                         onChange={() => setMaterial(m.value)}
                         className="sr-only"
                       />
-                      <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", material === m.value ? "border-civil-500" : "border-gray-400")}>
+                      <div className={cn("mt-0.5 shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center", material === m.value ? "border-civil-500" : "border-gray-400")}>
                         {material === m.value && <div className="w-2 h-2 rounded-full bg-civil-500" />}
                       </div>
-                      <span className="text-sm font-medium">{m.label}</span>
+                      <div className="flex flex-col">
+                        <span className={cn("text-sm font-bold", material === m.value ? "text-civil-700 dark:text-civil-300" : "text-[var(--color-foreground)]")}>{m.label}</span>
+                        <span className="text-xs mt-1 text-[var(--color-muted-foreground)] leading-relaxed">{m.desc}</span>
+                      </div>
                     </label>
                   ))}
                 </div>
