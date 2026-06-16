@@ -206,6 +206,7 @@ export function EarthquakeSim() {
               <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
                 <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Analisis Statik Ekuivalen</p>
                 <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung Gaya Geser Dasar ($V$) dan Simpangan Antar Lantai (Story Drift) berdasarkan Kategori Sistem Penahan Gaya Seismik SNI 1726.</p>
+            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30">METODE: SNI 1726:2019</span></div>
               </div>
 
               {/* Floors */}

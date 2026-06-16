@@ -22,6 +22,7 @@ export function WindLoadSim() {
           <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
             <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Beban Angin pada Bangunan</p>
             <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung distribusi tekanan angin berdasarkan ketinggian gedung dan kategori eksposur lingkungan.</p>
+            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30">METODE: SNI 1727:2020</span></div>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
