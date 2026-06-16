@@ -138,7 +138,7 @@ export function calculateWindLoad(windSpeed: number, buildingHeight: number, exp
     msg = `WASPADA: Tekanan angin cukup tinggi (${maxPressure.toFixed(0)} Pa). Pastikan sistem pengikat fasad (cladding) didesain khusus.`;
   }
 
-  return { pressureList, maxPressure, status, msg };
+  return { pressureList, maxPressure, alpha, zg, status, msg };
 }
 
 // ==========================================
@@ -213,33 +213,91 @@ export function calculateConcrete(targetStrength: number, flyAshPercent: number)
 // ==========================================
 // 4. SCHEDULING (Jalur Kritis)
 // ==========================================
-export function calculateSchedule(delay: number) {
-  const baseDays = { fondasi: 10, dinding: 15, atap: 7, finishing: 12 }
-  // Adding delay to dinding (critical)
-  const dinding = baseDays.dinding + delay
+export function calculateSchedule(durs: { A: number, B: number, C: number, D: number, E: number, F: number }) {
+  // Forward Pass
+  const es_A = 0;
+  const ef_A = durs.A;
   
-  const totalDuration = baseDays.fondasi + dinding + baseDays.atap + baseDays.finishing
+  const es_B = ef_A;
+  const ef_B = es_B + durs.B;
   
-  // Fake tasks for Gantt
-  const tasks = [
-    { name: "Pekerjaan Fondasi", start: 0, end: baseDays.fondasi, critical: true },
-    { name: "Pemasangan Dinding", start: baseDays.fondasi, end: baseDays.fondasi + dinding, critical: true },
-    { name: "Instalasi Pipa Air", start: baseDays.fondasi, end: baseDays.fondasi + 8, critical: false }, // slack
-    { name: "Rangka & Penutup Atap", start: baseDays.fondasi + dinding, end: baseDays.fondasi + dinding + baseDays.atap, critical: true },
-    { name: "Finishing & Cat", start: baseDays.fondasi + dinding + baseDays.atap, end: totalDuration, critical: true },
-  ]
+  const es_C = ef_B;
+  const ef_C = es_C + durs.C;
+  
+  const es_D = ef_B;
+  const ef_D = es_D + durs.D;
+  
+  const es_E = Math.max(ef_C, ef_D);
+  const ef_E = es_E + durs.E;
+  
+  const es_F = ef_E;
+  const ef_F = es_F + durs.F;
+  
+  const proj_duration = ef_F;
+  
+  // Backward Pass
+  const lf_F = proj_duration;
+  const ls_F = lf_F - durs.F;
+  
+  const lf_E = ls_F;
+  const ls_E = lf_E - durs.E;
+  
+  const lf_C = ls_E;
+  const ls_C = lf_C - durs.C;
+  
+  const lf_D = ls_E;
+  const ls_D = lf_D - durs.D;
+  
+  const lf_B = Math.min(ls_C, ls_D);
+  const ls_B = lf_B - durs.B;
+  
+  const lf_A = ls_B;
+  const ls_A = lf_A - durs.A;
+  
+  // Slack Calculation
+  const slack_A = ls_A - es_A;
+  const slack_B = ls_B - es_B;
+  const slack_C = ls_C - es_C;
+  const slack_D = ls_D - es_D;
+  const slack_E = ls_E - es_E;
+  const slack_F = ls_F - es_F;
+  
+  const taskNames = [
+    "A: Persiapan Lahan", 
+    "B: Galian Pondasi", 
+    "C: Cor Pondasi", 
+    "D: Pasang Dinding", 
+    "E: Rangka Atap", 
+    "F: Finishing & Cat"
+  ];
+  const es_list = [es_A, es_B, es_C, es_D, es_E, es_F];
+  const dur_list = [durs.A, durs.B, durs.C, durs.D, durs.E, durs.F];
+  const slack_list = [slack_A, slack_B, slack_C, slack_D, slack_E, slack_F];
+  
+  const tasks = taskNames.map((name, i) => ({
+    name,
+    start: es_list[i],
+    end: es_list[i] + dur_list[i],
+    dur: dur_list[i],
+    slack: slack_list[i],
+    critical: slack_list[i] === 0,
+    shortName: name.split(":")[0]
+  }));
 
-  let status: StatusType = "safe"
-  let msg = "Proyek berjalan sesuai rencana waktu."
-  if (delay > 5) {
-    status = "danger"
-    msg = `KETERLAMBATAN KRITIS: Mundurnya pekerjaan dinding membuat seluruh proyek mundur ${delay} hari!`
-  } else if (delay > 0) {
-    status = "warning"
-    msg = `WASPADA: Proyek sedikit meleset dari jadwal awal.`
+  const critical_path = tasks.filter(t => t.critical).map(t => t.shortName);
+
+  let status: StatusType = "safe";
+  let msg = `Proyek berjalan dengan aman. Rantai kritis: ${critical_path.join(" → ")}`;
+  
+  if (proj_duration > 35) {
+    status = "danger";
+    msg = `BAHAYA: Proyek diprediksi memakan waktu sangat lama (${proj_duration} hari). Harus dilakukan percepatan (crashing) pada jalur kritis: ${critical_path.join(" → ")}.`;
+  } else if (proj_duration > 25) {
+    status = "warning";
+    msg = `WASPADA: Waktu pengerjaan cukup panjang (${proj_duration} hari). Fokus awasi rantai kritis: ${critical_path.join(" → ")}.`;
   }
 
-  return { tasks, totalDuration, status, msg }
+  return { tasks, totalDuration: proj_duration, critical_path, status, msg };
 }
 
 // ==========================================
@@ -411,7 +469,7 @@ export function calculatePipeFlow(length: number, diameterMm: number) {
     msg = "WASPADA: Tekanan sisa sangat lemah (< 3m). Aliran air di keran akan sangat kecil (ngeres).";
   }
 
-  return { headLoss, finalPressure, profile, status, msg };
+  return { headLoss, finalPressure, profile, C, Q, status, msg };
 }
 
 // ==========================================
@@ -460,8 +518,8 @@ export function calculateTraffic(volume: number, lanes: number) {
   const cars = Array.from({length: Math.min(volume/100, 50)}, (_, i) => ({
     id: i,
     speed: Math.max(10, 100 * (1 - ds)),
-    lane: i % lanes
-  }))
+    lane: Math.floor(Math.random() * lanes)
+  }));
 
-  return { capacity, ds, los, cars, status, msg };
+  return { capacity, ds, los, C0, FCsf, cars, status, msg };
 }

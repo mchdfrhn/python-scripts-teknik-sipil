@@ -294,17 +294,31 @@ export function EarthquakeSim() {
 
         {/* HUD Metrics - Floating Top Right */}
         <div className="absolute top-4 right-4 z-10 flex gap-3 pointer-events-none">
-          <div className="glass-panel px-4 py-2 rounded-lg flex flex-col items-end">
-            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Base Shear (Gaya Geser Dasar)</span>
+          <div className="glass-panel px-4 py-2 rounded-lg flex flex-col items-end bg-[var(--color-background)]/80 backdrop-blur-md border border-[var(--color-border)]">
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">Base Shear (Gaya Geser Dasar)</span>
             <span className="font-mono font-bold text-lg text-destructive">
               {result.baseShear.toFixed(0)} kN
             </span>
           </div>
-          <div className="glass-panel px-4 py-2 rounded-lg flex flex-col items-end">
-            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Simpangan Atap Maks / Izin</span>
+          <div className="glass-panel px-4 py-2 rounded-lg flex flex-col items-end bg-[var(--color-background)]/80 backdrop-blur-md border border-[var(--color-border)]">
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">Simpangan Atap Maks / Izin</span>
             <span className={cn("font-mono font-bold text-lg", result.maxDrift > result.allowableDrift ? "text-destructive" : "text-safe")}>
               {result.maxDrift.toFixed(2)}m / {result.allowableDrift.toFixed(2)}m
             </span>
+          </div>
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md border border-[var(--color-border)] px-4 py-2 rounded-lg hidden xl:flex gap-4 items-end">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Sds</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.Sds.toFixed(2)} g</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Faktor Modifikasi (R)</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.R}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Pembesaran Defleksi (Cd)</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.Cd}</span>
+            </div>
           </div>
         </div>
 

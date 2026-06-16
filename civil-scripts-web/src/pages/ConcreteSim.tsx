@@ -64,6 +64,30 @@ export function ConcreteSim() {
           </ResponsiveContainer>
         </div>
 
+        {/* HUD Material List - Floating Top Left */}
+        <div className="absolute top-4 left-4 md:left-8 z-10 flex gap-3 pointer-events-none hidden sm:flex">
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md p-4 rounded-lg flex flex-col shadow-lg border-[var(--color-border)]">
+            <span className="text-xs font-bold text-[var(--color-muted-foreground)] uppercase mb-3 border-b border-border pb-2">Rekapitulasi Berat (1 m³)</span>
+            <div className="space-y-1.5">
+              {pieData.map((d, idx) => (
+                <div key={idx} className="flex justify-between gap-6 text-sm">
+                  <span className="text-[var(--color-foreground)] flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                    {d.name.replace(' (kg)', '')}
+                  </span>
+                  <span className="font-mono font-bold text-civil-500">{d.value.toFixed(1)} kg</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 pt-2 border-t border-[var(--color-border)] flex justify-between gap-6 text-sm font-bold text-foreground">
+              <span>TOTAL</span>
+              <span className="font-mono">
+                {pieData.reduce((acc, curr) => acc + curr.value, 0).toFixed(1)} kg
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* HUD Metrics - Floating Top Right */}
         <div className="absolute top-4 right-4 z-10 flex gap-3 pointer-events-none">
           <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg flex flex-col items-end">

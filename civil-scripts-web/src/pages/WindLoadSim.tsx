@@ -72,6 +72,16 @@ export function WindLoadSim() {
               {result.maxPressure.toFixed(0)} Pa
             </span>
           </div>
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg hidden xl:flex gap-4 items-end">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">α (Alpha)</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.alpha.toFixed(1)}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Zg (Gradien)</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.zg.toFixed(2)} m</span>
+            </div>
+          </div>
         </div>
 
         {/* HUD Status - Floating Bottom */}

@@ -89,6 +89,16 @@ export function TrafficSim() {
               {result.ds.toFixed(2)} / {result.los}
             </span>
           </div>
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg hidden xl:flex gap-4 items-end">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Kap. Dasar (C0)</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.C0}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Hambatan Samping</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.FCsf}</span>
+            </div>
+          </div>
         </div>
 
         {/* HUD Status - Floating Bottom */}

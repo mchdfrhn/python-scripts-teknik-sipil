@@ -10,8 +10,11 @@ export function SteelBeamSim() {
   const [load, setLoad] = useState(50)
   const [profile, setProfile] = useState<"WF200" | "WF300" | "WF400">("WF200")
   const [material, setMaterial] = useState<"BJ37" | "BJ41" | "BJ50">("BJ37")
+  const [chartMode, setChartMode] = useState<"def" | "bmd" | "sfd">("def")
 
   const result = useMemo(() => calculateBeam(length, load, profile, material), [length, load, profile, material])
+
+  const yDomainProp = chartMode === "def" ? [-100, 100] : ['auto', 'auto'];
 
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
@@ -32,6 +35,24 @@ export function SteelBeamSim() {
           <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
             <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Desain Balok Baja I-WF</p>
             <p className="text-[var(--color-muted-foreground)] leading-relaxed">Pengecekan kapasitas momen, geser, dan lendutan balok baja (simply supported) menahan beban terpusat di tengah bentang.</p>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Mode Visualisasi</label>
+            <div className="flex bg-[var(--color-secondary)] p-1 rounded-lg">
+              {(["def", "bmd", "sfd"] as const).map(mode => (
+                <button 
+                  key={mode}
+                  onClick={() => setChartMode(mode)}
+                  className={cn(
+                    "flex-1 text-[10px] font-bold py-1.5 rounded-md transition-colors",
+                    chartMode === mode ? "bg-[var(--color-background)] text-[var(--color-foreground)] shadow-sm" : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+                  )}
+                >
+                  {mode === "def" ? "LENDUTAN" : mode === "bmd" ? "BMD" : "SFD"}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -81,10 +102,17 @@ export function SteelBeamSim() {
             <LineChart data={result.points}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis dataKey="x" stroke="var(--color-muted-foreground)" />
-              <YAxis domain={[-100, 100]} stroke="var(--color-muted-foreground)" />
+              <YAxis domain={yDomainProp as any} stroke="var(--color-muted-foreground)" />
               <Tooltip contentStyle={{ backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', borderRadius: '8px' }} />
               <ReferenceLine y={0} stroke="var(--color-muted-foreground)" />
-              <Line type="monotone" dataKey="def" stroke="var(--color-civil-500)" strokeWidth={4} dot={false} isAnimationActive={false} />
+              <Line 
+                type="monotone" 
+                dataKey={chartMode} 
+                stroke={chartMode === "def" ? "var(--color-civil-500)" : chartMode === "bmd" ? "var(--color-warning)" : "var(--color-destructive)"} 
+                strokeWidth={4} 
+                dot={false} 
+                isAnimationActive={false} 
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>

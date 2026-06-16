@@ -94,6 +94,22 @@ export function RetainingWallSim() {
               {result.SF_sliding.toFixed(2)}
             </span>
           </div>
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg hidden xl:flex gap-4 items-end">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Gaya Aktif (Pa)</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.Pa.toFixed(1)} kN/m</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Eksentrisitas</span>
+              <span className={cn("font-mono font-bold text-sm", result.e_ratio > 1 ? "text-warning" : "text-[var(--color-foreground)]")}>
+                {(result.e_ratio * 100).toFixed(0)}% B/6
+              </span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">q_max</span>
+              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.q_max.toFixed(0)} kPa</span>
+            </div>
+          </div>
         </div>
 
         {/* HUD Status - Floating Bottom */}

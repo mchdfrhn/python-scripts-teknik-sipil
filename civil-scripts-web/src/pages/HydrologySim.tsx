@@ -80,6 +80,16 @@ export function HydrologySim() {
               {result.peakDischarge.toFixed(1)} m³/s
             </span>
           </div>
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg hidden xl:flex gap-4 items-end">
+             <div className="flex flex-col items-end">
+               <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Rumus Rasional</span>
+               <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">0.278 × C × I × A</span>
+             </div>
+             <div className="flex flex-col items-end">
+               <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Faktor Konversi</span>
+               <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">0.278</span>
+             </div>
+          </div>
         </div>
 
         {/* HUD Status - Floating Bottom */}

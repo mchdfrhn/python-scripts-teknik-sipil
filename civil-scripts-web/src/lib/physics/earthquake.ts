@@ -19,6 +19,9 @@ export interface EarthquakeResult {
   amplitudeAt: (t: number) => number
   /** Get floor deflections at time t */
   deflectionsAt: (t: number) => number[]
+  R: number
+  Cd: number
+  Sds: number
 }
 
 const MATERIAL_CONFIG = {
@@ -89,6 +92,9 @@ export function calculateEarthquake(params: EarthquakeParams): EarthquakeResult 
     allowableDrift,
     amplitudeAt,
     deflectionsAt,
+    R,
+    Cd,
+    Sds,
   }
 }
 
