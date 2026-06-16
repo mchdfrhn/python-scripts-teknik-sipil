@@ -93,42 +93,52 @@ export function calculateBeam(length: number, load: number, profileType: "WF200"
 }
 
 // ==========================================
-// 2. WIND LOAD (Kekuatan Gedung Menahan Angin)
+// 2. WIND LOAD (Beban Angin SNI 1727:2020 / ASCE 7-16)
 // ==========================================
-export function calculateWindLoad(height: number, windSpeed: number, location: "kota" | "pantai") {
-  const Kzt = 1.0, Kd = 0.85, G = 0.85
-  const KzList = []
+export function calculateWindLoad(windSpeed: number, buildingHeight: number, exposure: "B" | "C" | "D" = "B") {
   const pressureList = []
-  
   let maxPressure = 0
-  for (let z = 0; z <= height; z += 5) {
-    // Simplified Kz formula based on ASCE 7
-    const alpha = location === "kota" ? 7.0 : 9.5
-    const zg = location === "kota" ? 365.76 : 274.32
-    const z_eff = Math.max(z, 4.5)
-    const Kz = 2.01 * Math.pow((z_eff / zg), (2 / alpha))
+  
+  // SNI 1727 Table 26.11-1 Terrain Exposure Constants
+  let alpha = 7.0;
+  let zg = 365.76;
+  if (exposure === "C") {
+    alpha = 9.5;
+    zg = 274.32;
+  } else if (exposure === "D") {
+    alpha = 11.5;
+    zg = 213.36;
+  }
+  
+  const Kd = 0.85; // Directionality factor untuk bangunan
+  const Kzt = 1.0; // Topographic factor (asumsi rata)
+
+  for (let z = 0; z <= buildingHeight; z += Math.max(1, Math.floor(buildingHeight / 10))) {
+    // Elevasi z tidak boleh kurang dari 4.6m (15 ft) untuk perhitungan Kz
+    const z_calc = Math.max(z, 4.6);
     
-    // qz in N/m2 (simplified from mph/psf conversions)
-    const V_ms = windSpeed * (1000/3600)
-    const qz = 0.613 * Kz * Kzt * Kd * Math.pow(V_ms, 2)
-    const p = qz * G // Design pressure
+    // Koefisien Eksposur Tekanan Kecepatan (Kz)
+    const Kz = 2.01 * Math.pow(z_calc / zg, 2.0 / alpha);
     
-    KzList.push(Kz)
-    pressureList.push({ z, pressure: p })
-    maxPressure = Math.max(maxPressure, p)
+    // Tekanan Kecepatan qz = 0.613 * Kz * Kzt * Kd * V^2 (N/m2)
+    const qz = 0.613 * Kz * Kzt * Kd * Math.pow(windSpeed, 2);
+    
+    pressureList.push({ z, p: qz });
+    maxPressure = Math.max(maxPressure, qz);
   }
 
-  let status: StatusType = "safe"
-  let msg = "Ketebalan kaca standar aman digunakan."
+  let status: StatusType = "safe";
+  let msg = `Tekanan angin qz maksimum (${maxPressure.toFixed(0)} Pa). Kaca standar dan selubung bangunan aman.`;
+  
   if (maxPressure > 1500) {
-    status = "danger"
-    msg = `BAHAYA KACA PECAH: Tekanan angin sangat ekstrem (${maxPressure.toFixed(0)} Pa). Wajib gunakan kaca Tempered tebal 12mm+.`
+    status = "danger";
+    msg = `BAHAYA: Tekanan angin ekstrem (${maxPressure.toFixed(0)} Pa). Wajib gunakan panel fasad dan kaca yang diperkuat (tempered tebal / rangka aluminium ekstra).`;
   } else if (maxPressure > 800) {
-    status = "warning"
-    msg = "TEKANAN TINGGI: Gunakan kaca Laminated minimal 8mm."
+    status = "warning";
+    msg = `WASPADA: Tekanan angin cukup tinggi (${maxPressure.toFixed(0)} Pa). Pastikan sistem pengikat fasad (cladding) didesain khusus.`;
   }
 
-  return { pressureList, maxPressure, status, msg }
+  return { pressureList, maxPressure, status, msg };
 }
 
 // ==========================================
@@ -233,31 +243,45 @@ export function calculateSchedule(delay: number) {
 }
 
 // ==========================================
-// 5. SOIL BEARING (Daya Dukung Tanah)
+// 5. SOIL BEARING (Kapasitas Dukung Meyerhof)
 // ==========================================
 export function calculateSoilBearing(width: number, cohesion: number, phi: number) {
-  const gamma = 18 // kN/m3
-  const Df = 1.0 // m
+  const gamma = 18; // kN/m3
+  const Df = 1.0; // Kedalaman pondasi m
   
-  // Simplified Terzaghi Bearing Capacity Factors
-  const Nc = (phi - 10) * 1.5 + 5
-  const Nq = Math.exp(Math.PI * Math.tan(phi * Math.PI / 180)) * Math.pow(Math.tan((45 + phi/2) * Math.PI / 180), 2) / 3 // very approx
-  const Ng = 1.5 * (Nq - 1) * Math.tan(phi * Math.PI / 180)
+  // Meyerhof Bearing Capacity Factors
+  const phi_rad = phi * Math.PI / 180;
+  
+  // Nq
+  const Nq = Math.exp(Math.PI * Math.tan(phi_rad)) * Math.pow(Math.tan(Math.PI/4 + phi_rad/2), 2);
+  
+  // Nc
+  let Nc = 5.14; // untuk phi = 0
+  if (phi > 0) {
+    Nc = (Nq - 1) * (1 / Math.tan(phi_rad));
+  }
+  
+  // Ngamma
+  const Ngamma = (Nq - 1) * Math.tan(1.4 * phi_rad);
 
-  const q_ult = (cohesion * Nc) + (gamma * Df * Nq) + (0.5 * gamma * width * Ng)
-  const q_all = q_ult / 3 // Safety Factor = 3
+  // Kapasitas Dukung Ultimit (Square Footing Assumption)
+  // q_ult = 1.3 c Nc + q Nq + 0.4 gamma B Ngamma
+  const q = gamma * Df;
+  const q_ult = (1.3 * cohesion * Nc) + (q * Nq) + (0.4 * gamma * width * Ngamma);
+  const q_all = q_ult / 3.0; // Safety Factor = 3
 
-  let status: StatusType = "safe"
-  let msg = "Pondasi sangat aman menahan beban rumah 2 lantai."
+  let status: StatusType = "safe";
+  let msg = `Pondasi aman. Kapasitas izin tanah (q_all) mencapai ${q_all.toFixed(0)} kPa.`;
+  
   if (q_all < 50) {
-    status = "danger"
-    msg = "BAHAYA AMBLAS: Tanah terlalu lembek. Harus dipasang tiang pancang (paku bumi)!"
-  } else if (q_all < 100) {
-    status = "warning"
-    msg = "WASPADA: Lebarkan ukuran tapak pondasi agar beban menyebar lebih luas."
+    status = "danger";
+    msg = `BAHAYA: Daya dukung sangat rendah (${q_all.toFixed(0)} kPa). Tanah terlalu lembek, wajib gunakan pondasi dalam (tiang pancang / bore pile).`;
+  } else if (q_all < 150) {
+    status = "warning";
+    msg = `WASPADA: Daya dukung menengah (${q_all.toFixed(0)} kPa). Lebarkan dimensi tapak pondasi untuk bangunan lebih dari 2 lantai.`;
   }
 
-  return { q_ult, q_all, status, msg }
+  return { q_ult, q_all, Nc, Nq, Ngamma, status, msg };
 }
 
 // ==========================================
@@ -311,106 +335,133 @@ export function calculateRetainingWall(height: number, soilType: "pasir" | "lemp
 }
 
 // ==========================================
-// 7. HYDROLOGY (Bendungan Penangkal Banjir)
+// 7. HYDROLOGY (Metode Rasional SNI 2415)
 // ==========================================
-export function calculateHydrology(rainIntensity: "ringan" | "sedang" | "lebat", gatesOpen: number) {
-  let peakInflow = 50
-  if (rainIntensity === "sedang") peakInflow = 150
-  if (rainIntensity === "lebat") peakInflow = 300
-
-  const timeHours = Array.from({length: 24}, (_, i) => i)
-  const hydrograph = timeHours.map(t => {
-    // Fake hydrograph curve
-    const inflow = peakInflow * Math.exp(-0.5 * Math.pow((t - 6)/2, 2))
-    // Outflow depends on gates
-    const maxOutflow = gatesOpen * 40
-    let outflow = inflow * 0.6
-    if (outflow > maxOutflow) outflow = maxOutflow
-    return { hour: t, inflow, outflow, diff: inflow - outflow }
-  })
-
-  // Calculate volume stored
-  const totalVolumeStored = hydrograph.reduce((sum, h) => sum + (h.inflow - h.outflow > 0 ? h.inflow - h.outflow : 0), 0)
-
-  let status: StatusType = "safe"
-  let msg = "Bendungan berhasil meredam debit air. Kota hilir aman dari banjir."
-  if (totalVolumeStored > 400 && gatesOpen < 3) {
-    status = "danger"
-    msg = "BAHAYA TANGGUL JEBOL: Bendungan kepenuhan (Overtopping)! Segera buka pintu air tambahan!"
-  } else if (totalVolumeStored > 250) {
-    status = "warning"
-    msg = "WASPADA: Permukaan air waduk mendekati batas atas (Siaga 2)."
-  }
-
-  return { hydrograph, totalVolumeStored, status, msg }
-}
-
-// ==========================================
-// 8. PIPE FLOW (Tekanan Air Pipa Rumah)
-// ==========================================
-export function calculatePipeFlow(length: number, diameter: number) {
-  const C = 130 // PVC roughness
-  const flowLPM = 20 // 20 Liters per minute
-  const Q_m3s = flowLPM / 60000
-  const D_m = diameter / 1000
-
-  // Hazen-Williams Head Loss
-  const hf = 10.67 * length * Math.pow(Q_m3s, 1.852) / (Math.pow(C, 1.852) * Math.pow(D_m, 4.87))
+export function calculateHydrology(rainIntensity: number, area: number, runoffCoef: number) {
+  // Metode Rasional: Q = 0.278 * C * I * A
+  // rainIntensity (I) dalam mm/jam
+  // area (A) dalam km2
+  // runoffCoef (C) tak berdimensi
   
-  // Calculate pressure drop profile
-  const profile = []
-  for (let x = 0; x <= length; x += length/10) {
-    const hf_x = 10.67 * x * Math.pow(Q_m3s, 1.852) / (Math.pow(C, 1.852) * Math.pow(D_m, 4.87))
-    profile.push({ distance: x, pressure: 10 - hf_x }) // Assuming start at 10m head
+  const peakDischarge = 0.278 * runoffCoef * rainIntensity * area; // m3/s
+
+  // Create simple Unit Hydrograph for visualization
+  const timeHours = Array.from({length: 24}, (_, i) => i);
+  const timeToPeak = 4; // Jam ke-4 banjir bandang
+  
+  const hydrograph = timeHours.map(t => {
+    // Kurva Gamma / Nakayasu approximation
+    let Q = 0;
+    if (t > 0) {
+      if (t <= timeToPeak) {
+        Q = peakDischarge * Math.pow(t / timeToPeak, 2.4);
+      } else {
+        Q = peakDischarge * Math.exp(-0.3 * (t - timeToPeak));
+      }
+    }
+    return { hour: t, discharge: Q };
+  });
+
+  const totalVolumeM3 = hydrograph.reduce((sum, h) => sum + (h.discharge * 3600), 0);
+
+  let status: StatusType = "safe";
+  let msg = `Debit puncak ${peakDischarge.toFixed(1)} m³/s. Saluran drainase standar masih mampu menampung.`;
+  
+  if (peakDischarge > 100) {
+    status = "danger";
+    msg = `BAHAYA BANJIR BANDANG: Debit sangat besar (${peakDischarge.toFixed(1)} m³/s). Diperlukan bendungan pengendali banjir skala besar.`;
+  } else if (peakDischarge > 40) {
+    status = "warning";
+    msg = `WASPADA BANJIR: Debit puncak tinggi (${peakDischarge.toFixed(1)} m³/s). Normalisasi sungai dan pembuatan polder wajib dilakukan.`;
   }
 
-  const finalPressure = 10 - hf
-
-  let status: StatusType = "safe"
-  let msg = "Air mengalir sangat deras di ujung keran."
-  if (finalPressure < 2) {
-    status = "danger"
-    msg = `ALIRAN MATI: Air menetes sangat pelan. Pipa terlalu kecil (${diameter}mm) atau terlalu panjang.`
-  } else if (finalPressure < 5) {
-    status = "warning"
-    msg = "ALIRAN LEMAH: Tekanan air berkurang signifikan akibat gesekan dinding pipa."
-  }
-
-  return { profile, headLoss: hf, finalPressure, status, msg }
+  return { peakDischarge, hydrograph, totalVolumeM3, status, msg };
 }
 
 // ==========================================
-// 9. TRAFFIC (Kemacetan Lalu Lintas)
+// 8. PIPE FLOW (Hazen-Williams Head Loss)
+// ==========================================
+export function calculatePipeFlow(length: number, diameterMm: number) {
+  // Asumsi Pipa PVC (C = 140) dan Debit Aliran Konstan (Q = 0.5 liter/detik)
+  const C = 140; 
+  const Q = 0.0005; // m3/s
+  const D = diameterMm / 1000.0; // m
+  
+  // Hazen-Williams Head Loss equation (m)
+  // hf = 10.67 * L * (Q / C)^1.852 / D^4.87
+  const headLoss = 10.67 * length * Math.pow(Q / C, 1.852) / Math.pow(D, 4.87);
+  
+  const initialPressure = 10.0; // Head awal 10 meter (seperti tandon air 10m)
+  const finalPressure = initialPressure - headLoss;
+
+  const profile = [];
+  for (let dist = 0; dist <= length; dist += length / 10) {
+    const p = initialPressure - (headLoss * (dist / length));
+    profile.push({ distance: Math.round(dist), pressure: Math.max(0, p) });
+  }
+
+  let status: StatusType = "safe";
+  let msg = "Tekanan sisa mencukupi. Aliran air di ujung pipa deras.";
+
+  if (finalPressure < 0) {
+    status = "danger";
+    msg = "BAHAYA: Air tidak mengalir! Pipa terlalu kecil atau terlalu panjang sehingga terjadi friction loss yang melebihi tekanan awal.";
+  } else if (finalPressure < 3) {
+    status = "warning";
+    msg = "WASPADA: Tekanan sisa sangat lemah (< 3m). Aliran air di keran akan sangat kecil (ngeres).";
+  }
+
+  return { headLoss, finalPressure, profile, status, msg };
+}
+
+// ==========================================
+// 9. TRAFFIC (Kapasitas Jalan MKJI 1997 / HCM)
 // ==========================================
 export function calculateTraffic(volume: number, lanes: number) {
-  // Simple MKJI capacity model
-  const capacityPerLane = 1500 // smp/jam
-  const totalCapacity = lanes * capacityPerLane
-  const vcr = volume / totalCapacity // Volume Capacity Ratio
+  // Manual Kapasitas Jalan Indonesia (MKJI) 1997
+  // Asumsi: Jalan Perkotaan Terbagi (Divided), Lebar Lajur 3.5m, Hambatan Samping Sedang
+  
+  const C0 = 1650; // Kapasitas Dasar per lajur (smp/jam)
+  const FCw = 1.0; // Faktor Penyesuaian Lebar Lajur (3.5m = 1.0)
+  const FCsp = 1.0; // Faktor Pemisah Arah
+  const FCsf = 0.90; // Faktor Hambatan Samping Sedang
+  const FCcs = 1.0; // Ukuran Kota Menengah
+  
+  const capacity = C0 * lanes * FCw * FCsp * FCsf * FCcs;
+  const ds = volume / capacity; // Degree of Saturation
 
-  let los = "A"
-  if (vcr > 1.0) los = "F"
-  else if (vcr > 0.85) los = "E"
-  else if (vcr > 0.75) los = "D"
-  else if (vcr > 0.6) los = "C"
-  else if (vcr > 0.4) los = "B"
+  let status: StatusType = "safe";
+  let los = "A";
+  let msg = "Lalu lintas sangat lancar (Arus Bebas). Pengemudi dapat memilih kecepatan dengan bebas.";
 
-  let status: StatusType = "safe"
-  let msg = "Jalan lengang, kendaraan bisa ngebut santai."
-  if (los === "F") {
-    status = "danger"
-    msg = "MACET TOTAL (Stuck): Kapasitas jalan tidak muat menampung volume mobil. Perlu tambah lajur."
-  } else if (los === "E" || los === "D") {
-    status = "warning"
-    msg = "PADAT MERAYAP: Kecepatan kendaraan menurun drastis karena jarak antar mobil sangat dekat."
+  if (ds > 1.0) {
+    status = "danger";
+    los = "F";
+    msg = "MACET TOTAL (Level F): Arus tertahan, antrean panjang, kecepatan sangat rendah.";
+  } else if (ds > 0.85) {
+    status = "danger";
+    los = "E";
+    msg = "MENDEKATI MACET (Level E): Volume mendekati kapasitas, sering berhenti.";
+  } else if (ds > 0.75) {
+    status = "warning";
+    los = "D";
+    msg = "ARUS PADAT (Level D): Kecepatan menurun signifikan, jarak antar kendaraan sangat rapat.";
+  } else if (ds > 0.60) {
+    status = "safe";
+    los = "C";
+    msg = "ARUS STABIL (Level C): Kepadatan mulai terasa, gerak kendaraan cukup dibatasi.";
+  } else if (ds > 0.45) {
+    status = "safe";
+    los = "B";
+    msg = "LANCAR (Level B): Arus stabil, masih ada ruang bermanuver.";
   }
 
-  // Generate fake cars for animation
+  // Generate fake cars for animation (Optional)
   const cars = Array.from({length: Math.min(volume/100, 50)}, (_, i) => ({
     id: i,
-    speed: Math.max(10, 100 * (1 - vcr)),
+    speed: Math.max(10, 100 * (1 - ds)),
     lane: i % lanes
   }))
 
-  return { vcr, los, totalCapacity, cars, status, msg }
+  return { capacity, ds, los, cars, status, msg };
 }

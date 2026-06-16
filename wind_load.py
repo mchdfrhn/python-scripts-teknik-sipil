@@ -1,116 +1,63 @@
 import streamlit as st
-import numpy as np
 import matplotlib.pyplot as plt
-
-def get_Kz(z, exposure):
-    # ASCE 7 formula parameter tables (converted to SI units)
-    if "Perkotaan" in exposure:
-        zg, alpha = 365.76, 7.0
-        z_min = 9.14
-    elif "Terbuka" in exposure:
-        zg, alpha = 274.32, 9.5
-        z_min = 4.57
-    else: # Pantai
-        zg, alpha = 213.36, 11.5
-        z_min = 4.57
-        
-    z_calc = max(z, z_min)
-    return 2.01 * (z_calc / zg)**(2.0 / alpha)
+import numpy as np
 
 def page_wind_load():
-    st.header("💨 Kekuatan Gedung Menahan Angin")
-    st.write("""
-    **Mengapa simulasi ini penting bagi Anda?**  
-    Makin tinggi suatu gedung pencakar langit dibangun, angin yang bertiup di bagian atas akan makin kencang. Dinding luar dan kaca jendela gedung harus dirancang cukup tebal agar tidak pecah akibat tekanan dorong angin badai.
-    """)
+    st.header("💨 Beban Angin Bangunan (SNI 1727:2020 / ASCE 7-16)")
+    st.write("Menghitung profil tekanan angin desain ($q_z$) sepanjang tinggi bangunan berdasarkan Kategori Eksposur (Kekasaran Permukaan).")
     
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        st.subheader("Ukuran Gedung & Lokasi")
-        height_m = st.slider("Tinggi Gedung H (Meter)", 10.0, 100.0, 40.0, step=5.0, help="Makin tinggi gedung, kecepatan angin di lantai atas akan meningkat pesat.")
-        width_m = st.slider("Lebar Dinding Menghadap Angin (Meter)", 10.0, 100.0, 30.0, step=5.0, help="Lebar bidang dinding gedung yang ditabrak oleh angin lateral.")
-        exposure = st.selectbox("Kondisi Lingkungan Sekitar", [
-            "B (Perkotaan / Padat Bangunan)", 
-            "C (Terbuka / Lapangan / Sawah)", 
-            "D (Pantai / Rata Tanpa Penghalang)"
+        st.subheader("Parameter Angin")
+        wind_speed = st.slider("Kecepatan Angin Dasar (m/s)", 20.0, 80.0, 30.0, step=1.0)
+        building_height = st.slider("Tinggi Gedung (m)", 10.0, 200.0, 50.0, step=5.0)
+        exposure = st.selectbox("Kategori Eksposur", [
+            "Eksposur B (Perkotaan / Hutan / Padat)",
+            "Eksposur C (Terbuka / Dataran Rata)",
+            "Eksposur D (Tepi Pantai / Laut / Danau)"
         ])
         
-        st.markdown("---")
-        st.subheader("Kekuatan Angin")
-        V_wind = st.slider("Kecepatan Angin Dasar (m/detik)", 20, 60, 35, step=5, help="Kecepatan angin badai ekstrim di lokasi proyek (35 m/s ≈ 126 km/jam).")
+        # SNI 1727 Constants
+        if "B" in exposure:
+            alpha = 7.0
+            zg = 365.76
+        elif "C" in exposure:
+            alpha = 9.5
+            zg = 274.32
+        else:
+            alpha = 11.5
+            zg = 213.36
+            
+        Kd = 0.85
+        Kzt = 1.0
         
-        st.markdown("---")
-        st.subheader("Faktor Desain Standar")
-        Kd = 0.85 # Wind Directionality Factor
-        Kzt = 1.00 # Topographic Factor
-        G_gust = 0.85 # Gust Effect Factor
-        Cp = 0.80 # Windward external pressure coefficient
-        
-        st.info("""
-        💡 **Info Angin untuk Awam:**
-        * **Kategori Perkotaan (B)** memiliki banyak gedung lain sebagai penghalang, sehingga tekanan angin cenderung diredam.
-        * **Kategori Pantai (D)** tidak memiliki penghalang sama sekali, sehingga tiupan angin langsung menabrak dinding gedung dengan kekuatan penuh.
-        """)
+        st.info(f"**Konstanta Eksposur:**\n- $\\alpha$ = {alpha}\n- $Z_g$ = {zg} m")
         
     with col2:
-        # Generate height steps (0 to building height H)
-        n_steps = 50
-        z_steps = np.linspace(0, height_m, n_steps)
-        dz = height_m / (n_steps - 1)
+        elevations = np.arange(0, building_height + 1, max(1, building_height // 10))
+        pressures = []
         
-        # Calculate velocity pressure q_z & windward pressure p_z for each height
-        # q_z = 0.613 * Kz * Kzt * Kd * V^2 * 10^-3 (to convert Pa to kPa)
-        q_z = []
-        p_z = []
-        
-        for z in z_steps:
-            Kz = get_Kz(z, exposure)
-            qz = 0.613 * Kz * Kzt * Kd * (V_wind**2) * 0.001 # kPa
-            pz = qz * G_gust * Cp # kPa
-            q_z.append(qz)
-            p_z.append(pz)
+        for z in elevations:
+            z_calc = max(z, 4.6) # Minimal 4.6m (15ft)
+            Kz = 2.01 * ((z_calc / zg) ** (2.0 / alpha))
+            qz = 0.613 * Kz * Kzt * Kd * (wind_speed ** 2)
+            pressures.append(qz)
             
-        p_z = np.array(p_z)
+        max_p = max(pressures)
         
-        # Max values at top of building
-        max_qz = q_z[-1]
-        max_pz = p_z[-1]
+        fig, ax = plt.subplots(figsize=(6, 5))
+        ax.barh(elevations, pressures, height=building_height/15, color='#0068C9', alpha=0.8, edgecolor='black')
+        ax.set_xlabel("Tekanan Angin $q_z$ (Pascal)")
+        ax.set_ylabel("Elevasi Bangunan (m)")
+        ax.set_title(f"Profil Tekanan Angin (Max: {max_p:.0f} Pa)")
+        ax.grid(True, linestyle='--', alpha=0.6)
         
-        # Calculate Total Wind Force (Base Shear) in kN
-        # Integrate pressure * width over height: F_base = sum(p_z_i * width * dz)
-        total_wind_force = np.sum(p_z * width_m * dz)
-        
-        # Display Metrics
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.metric("Tekanan Angin di Atap", f"{max_qz:.3f} kPa", help="Tekanan dinamis angin di titik tertinggi gedung.")
-        with m2:
-            st.metric("Tekanan Maks pada Dinding", f"{max_pz:.3f} kPa", help="Beban angin tekan bersih per meter persegi dinding kaca teratas.")
-        with m3:
-            st.metric("Total Gaya Dorong Angin", f"{total_wind_force:.1f} kN", help="Gaya total yang mendorong gedung ke samping (10 kN ≈ 1 Ton).")
-            
-        # Plotting Pressure Profile vs Height
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.plot(p_z, z_steps, color='#FF4B4B', lw=2.5, label='Tekanan Desain Angin')
-        ax.fill_betweenx(z_steps, 0, p_z, color='#FF4B4B', alpha=0.15)
-        ax.set_ylabel('Tinggi Bangunan (Meter)')
-        ax.set_xlabel('Tekanan Angin Rencana p (kPa)')
-        ax.set_title('Distribusi Tekanan Angin vs Tinggi Gedung')
-        ax.grid(True, linestyle=':', alpha=0.5)
-        ax.legend()
         st.pyplot(fig)
-        plt.close()
         
-        # Engineering insights
-        st.subheader("Evaluasi Keamanan Dinding & Kaca")
-        st.write(f"Lokasi Gedung: **{exposure}**")
-        st.write(f"Tekanan tiup angin maksimal pada kaca jendela teratas: **{max_pz:.2f} kN/m²** (~{max_pz * 100:.1f} kg beban per meter persegi kaca).")
-        st.write(f"Total gaya dorong angin ke samping pada seluruh permukaan gedung: **{total_wind_force:.1f} kN** (~{total_wind_force / 9.81:.1f} Ton gaya lateral).")
-        
-        if max_pz > 1.2:
-            st.error("🚨 TEKANAN ANGIN SANGAT KENCANG: Beban angin sangat tinggi! Sambungan dinding panel luar dan kaca jendela harus didesain ekstra tebal dan kuat agar tidak pecah/terlepas tersapu badai. Struktur utama gedung juga membutuhkan dinding geser beton (shear wall) penahan beban samping.")
-        elif max_pz > 0.6:
-            st.warning("⚠️ TEKANAN ANGIN SEDANG: Cocok untuk konstruksi gedung perkantoran biasa. Pastikan kusen jendela luar memiliki sambungan yang memadai.")
+        if max_p > 1500:
+            st.error(f"🚨 BAHAYA: Tekanan angin sangat ekstrem ({max_p:.0f} Pa). Wajib gunakan sistem fasad khusus (kaca tempered tebal, rangka baja ekstra).")
+        elif max_p > 800:
+            st.warning(f"⚠️ WASPADA: Tekanan angin cukup tinggi ({max_p:.0f} Pa). Cladding dan kaca harus didesain tahan tekanan menengah-tinggi.")
         else:
-            st.success("✅ TEKANAN ANGIN AMAN: Tekanan angin rendah. Struktur dinding luar dan kaca jendela aman menggunakan perancangan standar.")
+            st.success(f"✅ AMAN: Tekanan angin ({max_p:.0f} Pa) masih dalam batas standar untuk kaca dan selubung bangunan biasa.")

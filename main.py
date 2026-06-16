@@ -10,7 +10,7 @@ from hydrology import page_hydrology
 from concrete import page_concrete
 from soil_bearing import page_soil_bearing
 from steel_beam import page_steel_beam
-from traffic_flow import page_traffic_flow
+from traffic import page_traffic
 from retaining_wall import page_retaining_wall
 from pipe_flow import page_pipe_flow
 from project_scheduling import page_project_scheduling
@@ -222,4 +222,4 @@ elif st.session_state.active_page == "🌊 Bendungan Penangkal Banjir":
 elif st.session_state.active_page == "🚰 Tekanan Air Pipa Rumah":
     page_pipe_flow()
 elif st.session_state.active_page == "🚦 Kalkulator Kemacetan Jalan":
-    page_traffic_flow()
+    page_traffic()

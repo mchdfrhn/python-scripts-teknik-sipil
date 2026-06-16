@@ -4,7 +4,7 @@ import {
   getEarthquakeStatus,
   type EarthquakeParams,
 } from "@/lib/physics/earthquake"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { Play, Square, Settings2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -31,7 +31,7 @@ export function EarthquakeSim() {
 
   const currentAmplitude = result.amplitudeAt(currentTime)
   const currentDeflections = result.deflectionsAt(currentTime)
-  const safety = getEarthquakeStatus(result.maxDrift, result.allowableDrift, material)
+  const safety = getEarthquakeStatus(result.maxDrift, result.allowableDrift)
 
   const startAnimation = useCallback(() => {
     setIsAnimating(true)

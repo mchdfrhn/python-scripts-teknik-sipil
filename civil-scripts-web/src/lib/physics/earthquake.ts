@@ -97,8 +97,7 @@ export function calculateEarthquake(params: EarthquakeParams): EarthquakeResult 
  */
 export function getEarthquakeStatus(
   maxDrift: number,
-  allowableDrift: number,
-  material: string
+  allowableDrift: number
 ): { status: "safe" | "warning" | "danger"; message: string } {
   
   if (maxDrift > allowableDrift * 1.5) {

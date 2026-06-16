@@ -1,83 +1,68 @@
 import streamlit as st
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 def page_hydrology():
-    st.header("🌊 Bendungan Penangkal Banjir")
-    st.write("""
-    **Mengapa simulasi ini penting bagi Anda?**  
-    Saat hujan deras melanda hulu sungai, volume air raksasa akan mengalir ke arah kota (banjir bandang). Bendungan berfungsi sebagai penampung sementara air banjir tersebut dan melepasnya secara perlahan agar sungai di kota tidak meluap.
-    """)
+    st.header("🌧️ Analisis Debit Banjir (Metode Rasional SNI 2415)")
+    st.write("Menghitung Debit Puncak (Peak Discharge, $Q$) dan mensimulasikan Hidrograf Sintetis berdasarkan Intensitas Hujan, Luas DAS, dan Koefisien Limpasan (Tutupan Lahan).")
     
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        st.subheader("Kontrol Aliran & Pintu Air")
-        curah_hujan = st.slider("Intensitas Hujan Hulu (mm/jam)", 20, 150, 80, help="Makin tinggi angka hujan, volume banjir kiriman makin besar.")
-        kapasitas_dam = st.slider("Daya Tampung Waduk (Unit Volume)", 100, 1000, 500, help="Kapasitas kolam waduk bendungan untuk menyimpan air banjir.")
-        bukaan_pintu = st.slider("Bukaan Pintu Air Waduk (%)", 0, 100, 30, help="Persentase bukaan pintu air bendungan untuk mengalirkan air ke sungai hilir.")
+        st.subheader("Data Daerah Aliran Sungai")
+        rain_intensity = st.slider("Intensitas Hujan, I (mm/jam)", 20.0, 300.0, 100.0, step=10.0)
+        area = st.slider("Luas DAS, A (km²)", 1.0, 50.0, 10.0, step=1.0)
         
-        st.info("""
-        💡 **Panduan Manajemen Banjir:**
-        * **Jika Pintu Air ditutup terlalu rapat**, air akan menumpuk di waduk dan berisiko meluap melewati puncak bendungan (overtopping) yang berakibat fatal.
-        * **Jika Pintu Air dibuka terlalu lebar**, air banjir akan langsung meluncur ke hilir sungai dan membanjiri kota seketika.
+        c_opts = {
+            "0.90 - Perkotaan / Aspal Padat": 0.9,
+            "0.70 - Permukiman / Perumahan": 0.7,
+            "0.30 - Lahan Kosong / Pertanian": 0.3,
+            "0.10 - Hutan Lebat": 0.1
+        }
+        runoff_label = st.selectbox("Tutupan Lahan (Koefisien Limpasan, C)", list(c_opts.keys()))
+        runoff_coef = c_opts[runoff_label]
+        
+        # Rational Method Calculation
+        peak_discharge = 0.278 * runoff_coef * rain_intensity * area
+        
+        st.info(f"""
+        **Rumus Rasional:**
+        $Q = 0.278 \cdot C \cdot I \cdot A$
+        $Q$ = {peak_discharge:.1f} m³/s
         """)
         
     with col2:
-        time_steps = np.arange(0, 24, 1)
-        # Model Hidrograf Banjir (Inflow) berbentuk lonceng
-        inflow = curah_hujan * np.exp(-((time_steps - 12) / 4)**2)
+        # Synthetic Hydrograph
+        time_hours = np.arange(0, 24, 1)
+        time_to_peak = 4
         
-        # Hitung Outflow berdasarkan bukaan pintu air
-        outflow_rate = (bukaan_pintu / 100) * 40
-        outflow = np.minimum(inflow, outflow_rate)
-        
-        # Hitung volume tampungan bendungan secara akumulatif
-        volume = np.zeros(len(time_steps))
-        current_vol = 0
-        dam_overflow = False
-        
-        for i in range(len(time_steps)):
-            current_vol += (inflow[i] - outflow[i])
-            current_vol = max(0, current_vol)
-            volume[i] = current_vol
-            if current_vol > kapasitas_dam:
-                dam_overflow = True
+        hydrograph = []
+        for t in time_hours:
+            if t == 0:
+                hydrograph.append(0)
+            elif t <= time_to_peak:
+                hydrograph.append(peak_discharge * ((t / time_to_peak) ** 2.4))
+            else:
+                hydrograph.append(peak_discharge * np.exp(-0.3 * (t - time_to_peak)))
                 
-        # Calculate key metrics
-        peak_inflow = max(inflow)
-        peak_outflow = max(outflow)
-        flood_reduction = ((peak_inflow - peak_outflow) / peak_inflow) * 100 if peak_inflow > 0 else 0.0
-        max_vol_retained = max(volume)
+        total_vol = sum(hydrograph) * 3600 / 1000 # Ribu m3
         
-        # Display Metrics
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.metric("Aliran Air Masuk Maksimal", f"{peak_inflow:.1f} m³/s", help="Puncak aliran air kiriman banjir dari hulu.")
-        with m2:
-            st.metric("Air yang Dilepas ke Kota", f"{peak_outflow:.1f} m³/s", help="Kecepatan aliran air yang keluar menuju sungai kota.")
-        with m3:
-            st.metric("Banjir yang Berhasil Diredam", f"{flood_reduction:.1f}%", help="Persentase puncak banjir yang berhasil dipotong oleh bendungan.")
-            
-        # Plotting Grafis Hidrograf
-        fig, ax = plt.subplots(figsize=(6, 3.5))
-        ax.plot(time_steps, inflow, label="Banjir Masuk dari Hulu (Inflow)", color='#FF4B4B', lw=2)
-        ax.plot(time_steps, outflow, label="Air Keluar ke Sungai Kota (Outflow)", color='#0068C9', lw=2)
-        ax.fill_between(time_steps, inflow, outflow, color='gray', alpha=0.2, label="Volume Air yang Ditahan Waduk")
-        ax.set_xlabel("Waktu Simulasi (Jam)")
-        ax.set_ylabel("Debit Aliran Air (m³/detik)")
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(time_hours, hydrograph, color='#ef4444', linewidth=2, label="Debit Aliran (Q)")
+        ax.fill_between(time_hours, hydrograph, color='#ef4444', alpha=0.2)
+        ax.set_xlabel("Waktu (Jam)")
+        ax.set_ylabel("Debit (m³/s)")
+        ax.set_title("Hidrograf Banjir Sintetis")
+        ax.grid(True, linestyle='--', alpha=0.6)
         ax.legend()
-        ax.grid(True, alpha=0.3)
+        
         st.pyplot(fig)
-        plt.close()
         
-        # Display Volume usage
-        st.progress(min(1.0, max_vol_retained / kapasitas_dam), text=f"Tampungan Waduk Terisi: {max_vol_retained:.1f} / {kapasitas_dam} unit")
+        st.metric("Total Volume Limpasan", f"{total_vol:.1f} Ribu m³")
         
-        st.subheader("Evaluasi Status Keselamatan")
-        if dam_overflow:
-            st.error("🚨 BENCANA BESAR: Waduk Penuh Meluap! Air meluncur deras melewati puncak bendungan (Overtopping). Terjadi banjir bandang dahsyat di kota hilir!")
-        elif max(outflow) > 35:
-            st.warning("⚠️ WASPADA BANJIR: Sungai di kota hilir meluap karena debit pintu air waduk dibuka terlalu besar.")
+        if peak_discharge > 100:
+            st.error(f"🚨 BAHAYA BANJIR BANDANG: Debit sangat besar ({peak_discharge:.1f} m³/s). Diperlukan bendungan pengendali banjir skala besar.")
+        elif peak_discharge > 40:
+            st.warning(f"⚠️ WASPADA BANJIR: Debit puncak tinggi ({peak_discharge:.1f} m³/s). Normalisasi sungai dan pembuatan polder wajib dilakukan.")
         else:
-            st.success("✅ KOTA AMAN: Bendungan berhasil memotong puncak air banjir dengan aman. Sungai di kota tetap normal di bawah tanggul sungai.")
+            st.success(f"✅ AMAN: Debit puncak ({peak_discharge:.1f} m³/s). Saluran drainase standar masih mampu menampung.")
