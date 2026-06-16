@@ -1,100 +1,80 @@
 import streamlit as st
-import numpy as np
 import matplotlib.pyplot as plt
 
 def page_concrete():
-    st.header("🧪 Peracik Beton Ramah Lingkungan")
-    st.write("""
-    **Mengapa simulasi ini penting bagi Anda?**  
-    Semen adalah bahan perekat beton, namun pembuatan semen melepas gas $CO_2$ (karbon) yang sangat besar ke atmosfer bumi. Di sini Anda bisa meracik beton ramah lingkungan (*Eco-Concrete*) dengan menyubstitusi sebagian semen menggunakan **Abu Terbang (Fly Ash)**—limbah pembakaran batu bara—tanpa mengurangi kekuatan struktur beton!
-    """)
+    st.header("🧱 Peracik Campuran Beton (ACI 211.1 / SNI 7656)")
+    st.write("Metode *Absolute Volume* untuk menentukan proporsi material penyusun beton berdasarkan target kuat tekan ($f'_c$) dan persentase abu batubara (Fly Ash).")
     
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        st.subheader("Bahan Campuran Beton (per 1 m³)")
-        semen = st.slider("Jumlah Semen Bersih (kg)", 200, 500, 350, help="Bahan perekat utama beton. Makin banyak semen, makin besar emisi karbonnya.")
-        air = st.slider("Jumlah Air Campuran (Liter)", 140, 220, 180, help="Air bereaksi kimia dengan semen untuk mengeras.")
-        fly_ash = st.slider("Abu Terbang / Fly Ash (kg)", 0, 150, 50, help="Limbah abu batubara pengganti semen. Ramah lingkungan dan murah.")
-        agregat = st.slider("Kerikil & Pasir (kg)", 800, 1200, 1000, help="Bahan pengisi padat berupa batu pecah/kerikil dan pasir.")
+        st.subheader("Parameter Mix Design")
+        target_strength = st.slider("Target Kuat Tekan (f'c) [MPa]", 20, 45, 30, step=5)
+        fly_ash_percent = st.slider("Substitusi Fly Ash (%)", 0, 50, 15, help="Mengganti semen dengan abu batubara untuk mengurangi emisi karbon.")
         
-        st.info("""
-        💡 **Info Penting untuk Awam:**
-        * **Abu Terbang (Fly Ash)** mengurangi jumlah semen yang dibutuhkan, sehingga jejak karbon semen berkurang.
-        * Perbandingan berat antara Air dan Semen disebut **Faktor Air Semen (FAS)**. Angka ini menentukan kekentalan adukan beton.
-        """)
+        # ACI 211.1 / SNI 7656 Calculations
+        water = 200.0 # kg/m3 (asumsi agregat 20mm, slump 75-100mm)
+        air_volume = 0.02 # 2% udara
+        
+        if target_strength >= 40:
+            wc_ratio = 0.43
+        elif target_strength >= 30:
+            wc_ratio = 0.54
+        elif target_strength >= 25:
+            wc_ratio = 0.60
+        else:
+            wc_ratio = 0.70
+            
+        total_cementitious = water / wc_ratio
+        fly_ash_mass = total_cementitious * (fly_ash_percent / 100.0)
+        cement_mass = total_cementitious - fly_ash_mass
+        
+        sg_cement = 3.15
+        sg_flyash = 2.20
+        sg_agg = 2.60
+        
+        coarse_agg = 992.0 # kg
+        
+        vol_water = water / 1000.0
+        vol_cement = cement_mass / (sg_cement * 1000.0)
+        vol_flyash = fly_ash_mass / (sg_flyash * 1000.0)
+        vol_coarse = coarse_agg / (sg_agg * 1000.0)
+        
+        vol_sand = 1.0 - (vol_water + vol_cement + vol_flyash + vol_coarse + air_volume)
+        fine_agg = vol_sand * (sg_agg * 1000.0)
+        
+        # Emisi CO2
+        co2_standard = total_cementitious * 0.9
+        co2_eco = (cement_mass * 0.9) + (fly_ash_mass * 0.02)
+        co2_reduction = ((co2_standard - co2_eco) / co2_standard) * 100
+        
+        st.info(f"**Rasio Air/Semen (w/c):** {wc_ratio:.2f}\n\n**Pengurangan Emisi CO2:** {co2_reduction:.1f}%")
         
     with col2:
-        # Rumus empiris sederhana untuk memprediksi kuat tekan beton (K / MPa)
-        # Faktor Air Semen (water-cement ratio)
-        # Fly ash memiliki kontribusi kekuatan yang lebih rendah secara instan dibandingkan semen,
-        # diwakili oleh koefisien efisiensi (misal 0.4)
-        water_cement_ratio = air / (semen + (fly_ash * 0.4))
+        st.subheader("Proporsi Material (kg per m³)")
         
-        # Kuat tekan berbanding terbalik dengan w/c ratio
-        predicted_strength = max(10, min(60, 100 * (0.8 - water_cement_ratio) + (agregat / 200)))
+        labels = ['Semen', 'Fly Ash', 'Air', 'Pasir', 'Kerikil']
+        sizes = [cement_mass, fly_ash_mass, water, fine_agg, coarse_agg]
+        colors = ['#94a3b8', '#10b981', '#3b82f6', '#f59e0b', '#64748b']
+        explode = (0.1, 0.1, 0, 0, 0)
         
-        # Hitung Jejak Emisi Karbon
-        # Semen menghasilkan sekitar 0.9 kg CO2 per kg semen
-        # Fly ash (limbah) menghasilkan sekitar 0.05 kg CO2 per kg
-        # Agregat menghasilkan sekitar 0.01 kg CO2 per kg
-        total_co2 = (semen * 0.9) + (fly_ash * 0.05) + (agregat * 0.01)
+        fig, ax = plt.subplots()
+        ax.pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%',
+               shadow=True, startangle=90)
+        ax.axis('equal')
         
-        # Bandingkan dengan beton konvensional standar (tanpa fly ash, semen = semen + fly_ash)
-        total_co2_ref = ((semen + fly_ash) * 0.9) + (agregat * 0.01)
-        savings_percent = ((total_co2_ref - total_co2) / total_co2_ref) * 100 if total_co2_ref > 0 else 0
-        
-        # Metric display
-        m1, m2 = st.columns(2)
-        with m1:
-            st.metric("Kekuatan Beton (Kuat Tekan)", f"{predicted_strength:.1f} MPa", help="Kekuatan beton menahan tekanan (makin besar makin kuat).")
-        with m2:
-            st.metric(
-                "Emisi Karbon (Gas Buang CO₂)", 
-                f"{total_co2:.1f} kg/m³", 
-                delta=f"-{savings_percent:.1f}% Ramah Lingkungan" if savings_percent > 0 else None,
-                delta_color="inverse"
-            )
-            
-        # Plotting comparison
-        fig, ax = plt.subplots(figsize=(6, 3.5))
-        categories = ['Beton Biasa (Tanpa Abu)', 'Beton Ramah Lingkungan']
-        emissions = [total_co2_ref, total_co2]
-        colors = ['#FF4B4B', '#2CA02C']
-        
-        bars = ax.bar(categories, emissions, color=colors, width=0.4)
-        ax.set_ylabel('Jejak Emisi Karbon CO₂ (kg/m³)')
-        ax.set_title('Perbandingan Emisi Karbon per 1 m³ Beton')
-        
-        # Add values on top of bars
-        for bar in bars:
-            height = bar.get_height()
-            ax.annotate(f'{height:.1f} kg',
-                        xy=(bar.get_x() + bar.get_width() / 2, height),
-                        xytext=(0, 3),  # 3 points vertical offset
-                        textcoords="offset points",
-                        ha='center', va='bottom', fontweight='bold')
-                        
-        ax.set_ylim(0, max(emissions) * 1.2)
-        ax.grid(True, axis='y', linestyle=':', alpha=0.6)
         st.pyplot(fig)
-        plt.close()
         
-        # Analisis dan Rekomendasi
-        st.subheader("Analisis Hasil Campuran Beton")
+        st.write("### Rekapitulasi Berat:")
+        st.write(f"- **Semen Portland:** {cement_mass:.1f} kg")
+        st.write(f"- **Abu Batubara:** {fly_ash_mass:.1f} kg")
+        st.write(f"- **Air:** {water:.1f} kg")
+        st.write(f"- **Pasir (Agregat Halus):** {fine_agg:.1f} kg")
+        st.write(f"- **Kerikil (Agregat Kasar):** {coarse_agg:.1f} kg")
         
-        # 1. FAS Analysis
-        if water_cement_ratio < 0.4:
-            st.warning("⚠️ Campuran Terlalu Kering (Kekurangan Air): Beton akan sangat sulit diaduk, dituang, dan diratakan tanpa tambahan cairan superplasticizer.")
-        elif water_cement_ratio > 0.6:
-            st.error("🚨 Campuran Terlalu Encer (Kelebihan Air): Air akan memisahkan kerikil dan semen (segregasi), membuat beton sangat keropos dan rapuh setelah kering.")
+        if fly_ash_percent > 35:
+            st.error("🚨 BAHAYA: Fly ash melebihi 35%. Kekuatan awal beton akan sangat rendah dan waktu ikat terlalu lama.")
+        elif fly_ash_percent > 20:
+            st.warning("⚠️ WASPADA: Penggunaan Fly Ash tinggi (High Volume Fly Ash Concrete). Perawatan basah harus ketat minimal 14 hari.")
         else:
-            st.success("✅ Kekentalan Ideal: Faktor air semen seimbang. Campuran beton mudah dikerjakan dengan kekuatan optimal.")
-            
-        # 2. Strength & Emisi Analysis
-        if predicted_strength >= 40:
-            st.info("💪 Mutu Tinggi (Beton Khusus): Sangat kuat! Cocok untuk tiang utama gedung bertingkat tinggi (pencakar langit) dan jembatan bentang panjang.")
-        elif predicted_strength >= 25:
-            st.info("🏢 Mutu Sedang (Beton Struktural): Cocok untuk komponen struktur utama rumah tinggal bertingkat, balok kolom, dan lantai beton.")
-        else:
-            st.warning("🏡 Mutu Rendah (Beton Non-Struktural): Kekuatannya rendah. Hanya direkomendasikan untuk jalan carport rumah, lantai dasar sebelum keramik, atau pagar taman.")
+            st.success("✅ Campuran memenuhi standar proporsi. Siap untuk *trial mix*.")

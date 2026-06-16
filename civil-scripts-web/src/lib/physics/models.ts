@@ -132,37 +132,72 @@ export function calculateWindLoad(height: number, windSpeed: number, location: "
 }
 
 // ==========================================
-// 3. CONCRETE (Peracik Beton Ramah Lingkungan)
+// 3. CONCRETE (Mix Design SNI 7656 / ACI 211.1)
 // ==========================================
 export function calculateConcrete(targetStrength: number, flyAshPercent: number) {
-  // Simplified mix design model
-  const waterBase = 180 // kg/m3
-  let cement = 0
+  // ACI 211.1 Absolute Volume Method approximation
+  // Asumsi: Agregat Maksimal 20mm, Slump 75-100mm, Non-Air Entrained
+  const water = 200; // kg/m3 air
+  const airVolume = 0.02; // 2% entrapped air
   
-  if (targetStrength === 20) cement = 300
-  else if (targetStrength === 30) cement = 400
-  else if (targetStrength === 40) cement = 500
+  // Perkiraan w/c ratio empiris berdasarkan f'c (Cylinder strength)
+  let wc_ratio = 0.60;
+  if (targetStrength >= 40) wc_ratio = 0.43;
+  else if (targetStrength >= 30) wc_ratio = 0.54;
+  else if (targetStrength >= 25) wc_ratio = 0.60;
+  else wc_ratio = 0.70; // 20 MPa
+  
+  const totalCementitious = water / wc_ratio;
+  
+  const flyAshMass = totalCementitious * (flyAshPercent / 100);
+  const cement = totalCementitious - flyAshMass;
+  
+  // Specific gravities
+  const sg_cement = 3.15;
+  const sg_flyash = 2.20;
+  const sg_agg = 2.60;
+  
+  // Volume Kerikil (Coarse Agg) = 0.62 * 1600 (berat isi padat) = 992 kg
+  const coarseAgg = 992;
+  
+  // Hitung volume absolut per m3
+  const vol_water = water / 1000;
+  const vol_cement = cement / (sg_cement * 1000);
+  const vol_flyash = flyAshMass / (sg_flyash * 1000);
+  const vol_coarse = coarseAgg / (sg_agg * 1000);
+  
+  // Pasir (Fine Agg) adalah sisa volume
+  const vol_sand = 1.0 - (vol_water + vol_cement + vol_flyash + vol_coarse + airVolume);
+  const fineAgg = vol_sand * (sg_agg * 1000);
+  
+  // CO2 Emission: ~0.9 kg CO2 per kg Semen, ~0.02 untuk Fly Ash
+  const co2_standard = totalCementitious * 0.9;
+  const co2_eco = (cement * 0.9) + (flyAshMass * 0.02);
+  const co2_reduction = ((co2_standard - co2_eco) / co2_standard) * 100;
 
-  const flyAshMass = cement * (flyAshPercent / 100)
-  const finalCement = cement - flyAshMass
-  const w_c = waterBase / (finalCement + flyAshMass)
-
-  // CO2 Emission: ~0.9 kg CO2 per kg Cement, ~0.02 for Fly Ash
-  const co2_standard = cement * 0.9
-  const co2_eco = (finalCement * 0.9) + (flyAshMass * 0.02)
-  const co2_reduction = ((co2_standard - co2_eco) / co2_standard) * 100
-
-  let status: StatusType = "safe"
-  let msg = "Campuran beton optimal dan mudah diaduk."
+  let status: StatusType = "safe";
+  let msg = "Mix Design memenuhi standar ACI 211.1 / SNI 7656. Proporsi absolut valid.";
   if (flyAshPercent > 35) {
-    status = "danger"
-    msg = "WASPADA: Substitusi abu batubara terlalu banyak. Beton butuh waktu 50+ hari untuk keras sepenuhnya."
+    status = "danger";
+    msg = "BAHAYA: Fly ash melebihi 35%. Kekuatan awal beton akan sangat rendah dan waktu ikat terlalu lama.";
   } else if (flyAshPercent > 20) {
-    status = "warning"
-    msg = "Beton sangat ramah lingkungan, namun butuh pengawasan ekstra saat pengecoran."
+    status = "warning";
+    msg = "WASPADA: Penggunaan Fly Ash tinggi (High Volume Fly Ash Concrete). Perawatan (curing) basah harus ketat minimal 14 hari.";
   }
 
-  return { w_c, finalCement, flyAshMass, co2_standard, co2_eco, co2_reduction, status, msg }
+  return { 
+    w_c: wc_ratio, 
+    finalCement: cement, 
+    flyAshMass, 
+    water,
+    fineAgg,
+    coarseAgg,
+    co2_standard, 
+    co2_eco, 
+    co2_reduction, 
+    status, 
+    msg 
+  };
 }
 
 // ==========================================
@@ -226,35 +261,53 @@ export function calculateSoilBearing(width: number, cohesion: number, phi: numbe
 }
 
 // ==========================================
-// 6. RETAINING WALL (Dinding Penahan Tanah)
+// 6. RETAINING WALL (Standar Geoteknik SNI 8460)
 // ==========================================
 export function calculateRetainingWall(height: number, soilType: "pasir" | "lempung") {
-  const gamma = soilType === "pasir" ? 18 : 16
-  const phi = soilType === "pasir" ? 30 : 20
+  const gamma = soilType === "pasir" ? 18 : 16; // kN/m3
+  const phi = soilType === "pasir" ? 30 : 20; // derajat
   
   // Rankine Active Earth Pressure
-  const Ka = Math.pow(Math.tan((45 - phi/2) * Math.PI / 180), 2)
-  const Pa = 0.5 * Ka * gamma * height * height // Active force
+  const Ka = Math.pow(Math.tan((45 - phi/2) * Math.PI / 180), 2);
+  const Pa = 0.5 * Ka * gamma * Math.pow(height, 2); // Gaya dorong horizontal (kN/m)
   
-  // Resisting (concrete weight)
-  const baseWidth = height * 0.6
-  const W_concrete = baseWidth * height * 24 // concrete gamma
-  const resistingMoment = W_concrete * (baseWidth / 2)
-  const overturningMoment = Pa * (height / 3)
+  // Asumsi Dimensi Dinding Beton Gravitasi
+  const baseWidth = height * 0.6; // B
+  const W_concrete = baseWidth * height * 24; // Berat beton (kN/m)
   
-  const SF_overturning = resistingMoment / overturningMoment
-
-  let status: StatusType = "safe"
-  let msg = "Dinding penahan tebing sangat kokoh."
+  // Momen Guling (Overturning)
+  const resistingMoment = W_concrete * (baseWidth / 2);
+  const overturningMoment = Pa * (height / 3);
+  const SF_overturning = resistingMoment / overturningMoment;
+  
+  // Gaya Geser (Sliding)
+  const frictionAngleBase = (2/3) * phi; // Asumsi gesekan beton dengan tanah
+  const resistingSliding = W_concrete * Math.tan(frictionAngleBase * Math.PI / 180);
+  const SF_sliding = resistingSliding / Pa;
+  
+  // Eksentrisitas dan Daya Dukung Tanah Dasar
+  const e = (baseWidth / 2) - ((resistingMoment - overturningMoment) / W_concrete);
+  const q_max = (W_concrete / baseWidth) * (1 + (6 * e) / baseWidth);
+  const q_all = soilType === "pasir" ? 200 : 100; // Asumsi daya dukung izin (kPa)
+  
+  let status: StatusType = "safe";
+  let msg = "Desain Dinding Penahan Tanah memenuhi SF Guling > 1.5, SF Geser > 1.5, dan Kapasitas Tanah Aman.";
+  
   if (SF_overturning < 1.5) {
-    status = "danger"
-    msg = `BAHAYA LONGSOR: Dinding bisa terguling! (Faktor Keamanan = ${SF_overturning.toFixed(2)} < 1.5). Lebarkan dasar pondasi.`
-  } else if (SF_overturning < 2.0) {
-    status = "warning"
-    msg = "WASPADA: Dinding cukup aman, tapi pertimbangkan sistem drainase agar air hujan tidak menambah beban dorong."
+    status = "danger";
+    msg = `BAHAYA GULING: Faktor Keamanan Guling (${SF_overturning.toFixed(2)}) kurang dari 1.5! Dinding berisiko terjungkal.`;
+  } else if (SF_sliding < 1.5) {
+    status = "danger";
+    msg = `BAHAYA GESER: Faktor Keamanan Geser/Sliding (${SF_sliding.toFixed(2)}) kurang dari 1.5! Dinding berisiko terseret ke depan. Tambahkan *Shear Key* di pondasi.`;
+  } else if (Math.abs(e) > baseWidth / 6) {
+    status = "warning";
+    msg = `WASPADA EKSENTRISITAS: e = ${e.toFixed(2)}m melebihi B/6. Tanah akan mengalami tarik di satu sisi pondasi (Tension). Lebarkan pondasi.`;
+  } else if (q_max > q_all) {
+    status = "warning";
+    msg = `WASPADA DAYA DUKUNG: Tegangan tanah q_max (${q_max.toFixed(0)} kPa) melampaui daya dukung izin (${q_all} kPa). Tanah berisiko ambles di bagian ujung (toe).`;
   }
 
-  return { Pa, SF_overturning, baseWidth, status, msg }
+  return { Pa, SF_overturning, SF_sliding, q_max, e_ratio: Math.abs(e)/(baseWidth/6), baseWidth, status, msg };
 }
 
 // ==========================================
