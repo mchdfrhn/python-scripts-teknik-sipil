@@ -12,9 +12,22 @@ export function SchedulingSim() {
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
       <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50">
-        <div className="p-5 border-b border-[var(--color-border)]"><h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Parameter Proyek</h2></div>
+        <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
+          <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis CPM</h2>
+        </div>
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">KENDALA CUACA / MATERIAL</label><span className="text-sm font-bold text-destructive">Tunda {delay} hari</span></div><input type="range" min={0} max={15} value={delay} onChange={(e) => setDelay(Number(e.target.value))} className="w-full accent-destructive" /></div>
+          <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
+            <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Manajemen Proyek (CPM)</p>
+            <p className="text-[var(--color-muted-foreground)] leading-relaxed">Mensimulasikan pengaruh keterlambatan aktivitas pada durasi total proyek menggunakan Critical Path Method.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Kendala Cuaca / Material</label>
+              <span className="text-sm font-mono font-bold bg-destructive/10 text-destructive px-2 py-0.5 rounded">Tunda {delay} hr</span>
+            </div>
+            <input type="range" min={0} max={15} value={delay} onChange={(e) => setDelay(Number(e.target.value))} className="w-full accent-destructive" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Hari penundaan yang disimulasikan ke dalam aktivitas.</p>
+          </div>
         </div>
       </motion.div>
       <div className="relative flex-1 bg-[var(--color-background)]">
@@ -74,9 +87,9 @@ export function SchedulingSim() {
             animate={{ y: 0, opacity: 1 }}
             key={result.status}
             className={cn(
-              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 bg-[var(--color-background)]/90 backdrop-blur-md",
-              result.status === "danger" ? "border-l-destructive" : 
-              result.status === "warning" ? "border-l-warning" : "border-l-safe"
+              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 backdrop-blur-md",
+              result.status === "danger" ? "border-l-destructive bg-destructive/10 dark:bg-destructive/20" : 
+              result.status === "warning" ? "border-l-warning bg-warning/10 dark:bg-warning/20" : "border-l-safe bg-safe/10 dark:bg-safe/20"
             )}
           >
             <div className={cn(

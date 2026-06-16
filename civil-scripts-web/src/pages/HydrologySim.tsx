@@ -15,11 +15,39 @@ export function HydrologySim() {
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
       <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50">
-        <div className="p-5 border-b border-[var(--color-border)]"><h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis Debit (SNI)</h2></div>
+        <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
+          <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis SNI 2415</h2>
+        </div>
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">INTENSITAS HUJAN (mm/jam)</label><span className="text-sm font-bold text-destructive">{rainIntensity}</span></div><input type="range" min={20} max={300} value={rainIntensity} onChange={(e) => setRainIntensity(Number(e.target.value))} className="w-full accent-destructive" /></div>
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">LUAS DAS (km²)</label><span className="text-sm font-bold">{area}</span></div><input type="range" min={1} max={50} value={area} onChange={(e) => setArea(Number(e.target.value))} className="w-full accent-civil-500" /></div>
-          <div className="space-y-3"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">TUTUPAN LAHAN (C)</label><select value={runoffCoef} onChange={(e) => setRunoffCoef(Number(e.target.value))} className="w-full p-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-secondary)]"><option value={0.9}>0.90 - Perkotaan / Aspal Padat</option><option value={0.7}>0.70 - Permukiman / Perumahan</option><option value={0.3}>0.30 - Lahan Kosong / Pertanian</option><option value={0.1}>0.10 - Hutan Lebat</option></select></div>
+          <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
+            <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Analisis Debit Puncak (Metode Rasional)</p>
+            <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung Debit Limpasan (Runoff) maksimal akibat intensitas curah hujan berdasarkan Metode Rasional.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Intensitas Hujan</label>
+              <span className="text-sm font-mono font-bold bg-destructive/10 text-destructive px-2 py-0.5 rounded">{rainIntensity} mm/j</span>
+            </div>
+            <input type="range" min={20} max={300} value={rainIntensity} onChange={(e) => setRainIntensity(Number(e.target.value))} className="w-full accent-destructive" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Curah hujan maksimum pada suatu durasi tertentu.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Luas DAS</label>
+              <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{area} km²</span>
+            </div>
+            <input type="range" min={1} max={50} value={area} onChange={(e) => setArea(Number(e.target.value))} className="w-full accent-civil-500" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Luas Daerah Aliran Sungai yang menampung hujan.</p>
+          </div>
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Tutupan Lahan (C)</label>
+            <select value={runoffCoef} onChange={(e) => setRunoffCoef(Number(e.target.value))} className="w-full p-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-secondary)] text-sm">
+              <option value={0.9}>0.90 - Perkotaan / Aspal Padat</option>
+              <option value={0.7}>0.70 - Permukiman / Perumahan</option>
+              <option value={0.3}>0.30 - Lahan Kosong / Pertanian</option>
+              <option value={0.1}>0.10 - Hutan Lebat</option>
+            </select>
+          </div>
         </div>
       </motion.div>
       <div className="relative flex-1 bg-[var(--color-background)]">
@@ -61,9 +89,9 @@ export function HydrologySim() {
             animate={{ y: 0, opacity: 1 }}
             key={result.status}
             className={cn(
-              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 bg-[var(--color-background)]/90 backdrop-blur-md",
-              result.status === "danger" ? "border-l-destructive" : 
-              result.status === "warning" ? "border-l-warning" : "border-l-safe"
+              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 backdrop-blur-md",
+              result.status === "danger" ? "border-l-destructive bg-destructive/10 dark:bg-destructive/20" : 
+              result.status === "warning" ? "border-l-warning bg-warning/10 dark:bg-warning/20" : "border-l-safe bg-safe/10 dark:bg-safe/20"
             )}
           >
             <div className={cn(

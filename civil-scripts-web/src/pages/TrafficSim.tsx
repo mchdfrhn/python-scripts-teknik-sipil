@@ -13,16 +13,36 @@ export function TrafficSim() {
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
       <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50">
-        <div className="p-5 border-b border-[var(--color-border)]"><h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis Jalan (MKJI)</h2></div>
+        <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
+          <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis MKJI 1997</h2>
+        </div>
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">VOLUME LALU LINTAS (smp/jam)</label><span className="text-sm font-bold">{volume}</span></div><input type="range" min={500} max={8000} step={100} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-full accent-civil-500" /></div>
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">JUMLAH LAJUR</label><span className="text-sm font-bold text-civil-500">{lanes} Lajur</span></div><input type="range" min={1} max={4} value={lanes} onChange={(e) => setLanes(Number(e.target.value))} className="w-full accent-civil-500" /></div>
+          <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
+            <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Analisis Kapasitas Jalan</p>
+            <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung Derajat Kejenuhan (DS) dan Level of Service (LOS) berdasarkan Manual Kapasitas Jalan Indonesia (MKJI 1997).</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Volume Lalu Lintas</label>
+              <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{volume} smp/j</span>
+            </div>
+            <input type="range" min={500} max={8000} step={100} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-full accent-civil-500" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Jumlah ekuivalen mobil penumpang per jam.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Jumlah Lajur</label>
+              <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{lanes} Lajur</span>
+            </div>
+            <input type="range" min={1} max={4} value={lanes} onChange={(e) => setLanes(Number(e.target.value))} className="w-full accent-civil-500" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Jumlah total lajur pada jalan yang ditinjau.</p>
+          </div>
         </div>
       </motion.div>
       <div className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Animated Traffic Simulation */}
-        <div className="absolute inset-0 w-full h-full bg-zinc-900 dark:bg-zinc-950 flex flex-col justify-center overflow-hidden">
+        <div className="absolute inset-0 w-full h-full bg-zinc-900 dark:bg-zinc-950 flex flex-col justify-center overflow-hidden pb-32">
           <div className="relative w-full flex flex-col justify-center gap-2">
             {Array.from({length: lanes}).map((_, laneIdx) => (
               <div key={laneIdx} className="h-16 w-full bg-zinc-800 border-y border-dashed border-zinc-600 relative overflow-hidden">
@@ -78,9 +98,9 @@ export function TrafficSim() {
             animate={{ y: 0, opacity: 1 }}
             key={result.status}
             className={cn(
-              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 bg-[var(--color-background)]/90 backdrop-blur-md",
-              result.status === "danger" ? "border-l-destructive" : 
-              result.status === "warning" ? "border-l-warning" : "border-l-safe"
+              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 backdrop-blur-md",
+              result.status === "danger" ? "border-l-destructive bg-destructive/10 dark:bg-destructive/20" : 
+              result.status === "warning" ? "border-l-warning bg-warning/10 dark:bg-warning/20" : "border-l-safe bg-safe/10 dark:bg-safe/20"
             )}
           >
             <div className={cn(

@@ -14,17 +14,44 @@ export function SoilBearingSim() {
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
       <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50">
-        <div className="p-5 border-b border-[var(--color-border)]"><h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Daya Dukung (Meyerhof)</h2></div>
+        <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
+          <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis Meyerhof</h2>
+        </div>
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">LEBAR PONDASI (m)</label><span className="text-sm font-bold">{width.toFixed(1)}m</span></div><input type="range" min={0.5} max={3.0} step={0.1} value={width} onChange={(e) => setWidth(Number(e.target.value))} className="w-full accent-civil-500" /></div>
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">KOHESI TANAH (kPa)</label><span className="text-sm font-bold text-amber-500">{cohesion}</span></div><input type="range" min={0} max={100} value={cohesion} onChange={(e) => setCohesion(Number(e.target.value))} className="w-full accent-amber-500" /></div>
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">SUDUT GESER (derajat)</label><span className="text-sm font-bold text-amber-500">{phi}°</span></div><input type="range" min={0} max={45} value={phi} onChange={(e) => setPhi(Number(e.target.value))} className="w-full accent-amber-500" /></div>
+          <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
+            <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Kapasitas Dukung Tanah</p>
+            <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung daya dukung ultimit dan izin pondasi dangkal berdasarkan teori Meyerhof.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Lebar Pondasi</label>
+              <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{width.toFixed(1)} m</span>
+            </div>
+            <input type="range" min={0.5} max={3.0} step={0.1} value={width} onChange={(e) => setWidth(Number(e.target.value))} className="w-full accent-civil-500" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Dimensi lebar dasar pondasi.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Kohesi Tanah</label>
+              <span className="text-sm font-mono font-bold bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded">{cohesion} kPa</span>
+            </div>
+            <input type="range" min={0} max={100} value={cohesion} onChange={(e) => setCohesion(Number(e.target.value))} className="w-full accent-amber-500" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Kekuatan tarik/lekat antar partikel tanah.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Sudut Geser</label>
+              <span className="text-sm font-mono font-bold bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded">{phi}°</span>
+            </div>
+            <input type="range" min={0} max={45} value={phi} onChange={(e) => setPhi(Number(e.target.value))} className="w-full accent-amber-500" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Sudut gesekan dalam material tanah.</p>
+          </div>
         </div>
       </motion.div>
       <div className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Simple visual representation */}
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-4">
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-4 pb-32">
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, var(--color-foreground) 0, var(--color-foreground) 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }} />
           
           <div className="relative flex flex-col items-center">
@@ -81,9 +108,9 @@ export function SoilBearingSim() {
             animate={{ y: 0, opacity: 1 }}
             key={result.status}
             className={cn(
-              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 bg-[var(--color-background)]/90 backdrop-blur-md",
-              result.status === "danger" ? "border-l-destructive" : 
-              result.status === "warning" ? "border-l-warning" : "border-l-safe"
+              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 backdrop-blur-md",
+              result.status === "danger" ? "border-l-destructive bg-destructive/10 dark:bg-destructive/20" : 
+              result.status === "warning" ? "border-l-warning bg-warning/10 dark:bg-warning/20" : "border-l-safe bg-safe/10 dark:bg-safe/20"
             )}
           >
             <div className={cn(

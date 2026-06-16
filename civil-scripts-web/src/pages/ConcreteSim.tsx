@@ -23,10 +23,30 @@ export function ConcreteSim() {
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
       <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50">
-        <div className="p-5 border-b border-[var(--color-border)]"><h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Mix Design (ACI 211.1)</h2></div>
+        <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
+          <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis ACI 211.1</h2>
+        </div>
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">MUTU BETON TARGET</label><span className="text-sm font-bold">fc' {strength} MPa</span></div><input type="range" min={20} max={45} step={5} value={strength} onChange={(e) => setStrength(Number(e.target.value))} className="w-full accent-civil-500" /></div>
-          <div className="space-y-3"><div className="flex justify-between"><label className="text-xs font-semibold text-[var(--color-muted-foreground)]">SUBSTITUSI FLY ASH</label><span className="text-sm font-bold text-civil-500">{flyAsh}%</span></div><input type="range" min={0} max={50} value={flyAsh} onChange={(e) => setFlyAsh(Number(e.target.value))} className="w-full accent-civil-500" /></div>
+          <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
+            <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Mix Design Beton Normal</p>
+            <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung proporsi campuran beton (semen, air, agregat) dan substitusi material ramah lingkungan.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Mutu Beton Target</label>
+              <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">fc' {strength} MPa</span>
+            </div>
+            <input type="range" min={20} max={45} step={5} value={strength} onChange={(e) => setStrength(Number(e.target.value))} className="w-full accent-civil-500" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Kekuatan tekan karakteristik beton pada umur 28 hari.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Substitusi Fly Ash</label>
+              <span className="text-sm font-mono font-bold bg-safe/10 text-safe px-2 py-0.5 rounded">{flyAsh} %</span>
+            </div>
+            <input type="range" min={0} max={50} value={flyAsh} onChange={(e) => setFlyAsh(Number(e.target.value))} className="w-full accent-safe" />
+            <p className="text-xs text-[var(--color-muted-foreground)]">Persentase penggantian semen dengan abu terbang.</p>
+          </div>
         </div>
       </motion.div>
       <div className="relative flex-1 bg-[var(--color-background)]">
@@ -67,9 +87,9 @@ export function ConcreteSim() {
             animate={{ y: 0, opacity: 1 }}
             key={result.status}
             className={cn(
-              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 bg-[var(--color-background)]/90 backdrop-blur-md",
-              result.status === "danger" ? "border-l-destructive" : 
-              result.status === "warning" ? "border-l-warning" : "border-l-safe"
+              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 backdrop-blur-md",
+              result.status === "danger" ? "border-l-destructive bg-destructive/10 dark:bg-destructive/20" : 
+              result.status === "warning" ? "border-l-warning bg-warning/10 dark:bg-warning/20" : "border-l-safe bg-safe/10 dark:bg-safe/20"
             )}
           >
             <div className={cn(
