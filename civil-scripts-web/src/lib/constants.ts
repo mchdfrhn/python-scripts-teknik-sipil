@@ -1,101 +1,124 @@
+import { 
+  Building2, 
+  Wind, 
+  Droplets, 
+  MountainSnow, 
+  FlaskConical, 
+  CalendarClock, 
+  TrafficCone, 
+  Waves,
+  Hammer,
+  KanbanSquare
+} from "lucide-react"
+
 export const MODULES = [
   {
     id: "earthquake",
     path: "/earthquake",
-    icon: "🏗️",
+    icon: Building2,
     title: "Simulasi Gedung Tahan Gempa",
     shortTitle: "Gempa",
-    description: "Lihat bagaimana gedung bertingkat bergoyang saat gempa bumi dan cara merancang gedung agar aman dari risiko runtuh.",
+    description: "Analisis osilasi harmonik dan redaman (damping) gedung bertingkat saat menerima beban gempa lateral.",
     category: "struktur",
+    size: "large" // Untuk Bento Grid
   },
   {
     id: "steel-beam",
     path: "/steel-beam",
-    icon: "🌉",
+    icon: Hammer,
     title: "Kelenturan Jembatan & Balok",
     shortTitle: "Balok Baja",
-    description: "Simulasikan seberapa melengkung jembatan atau balok baja ketika dilewati kendaraan atau beban berat.",
+    description: "Kalkulasi diagram gaya geser (SFD), momen lentur (BMD), dan defleksi balok akibat beban.",
     category: "struktur",
+    size: "medium"
   },
   {
     id: "wind-load",
     path: "/wind-load",
-    icon: "💨",
+    icon: Wind,
     title: "Kekuatan Gedung Menahan Angin",
     shortTitle: "Beban Angin",
-    description: "Hitung seberapa kuat dinding dan kaca gedung bertingkat dalam menahan tiupan angin kencang.",
+    description: "Evaluasi tekanan angin (wind pressure) pada fasad gedung sesuai standar kecepatan angin.",
     category: "struktur",
+    size: "medium"
   },
   {
     id: "concrete",
     path: "/concrete",
-    icon: "🧪",
+    icon: FlaskConical,
     title: "Peracik Beton Ramah Lingkungan",
     shortTitle: "Beton Eco",
-    description: "Racik beton yang kokoh namun rendah emisi karbon dengan memanfaatkan abu limbah batubara.",
+    description: "Optimasi Faktor Air Semen (FAS) dan campuran material (Fly Ash) untuk beton mutu tinggi rendah karbon.",
     category: "material",
+    size: "medium"
   },
   {
     id: "scheduling",
     path: "/scheduling",
-    icon: "📅",
+    icon: CalendarClock,
     title: "Penjadwalan Proyek Konstruksi",
     shortTitle: "Penjadwalan",
-    description: "Belajar menyusun jadwal kerja pembangunan rumah agar selesai tepat waktu tanpa terlambat.",
+    description: "Manajemen waktu proyek dengan metode Jalur Kritis (Critical Path Method) dan Gantt Chart.",
     category: "material",
+    size: "medium"
   },
   {
     id: "soil-bearing",
     path: "/soil-bearing",
-    icon: "🪨",
+    icon: MountainSnow,
     title: "Kekuatan Tanah Pondasi",
     shortTitle: "Tanah Pondasi",
-    description: "Uji apakah tanah di bawah rumah Anda cukup kuat menahan berat bangunan agar tidak amblas.",
+    description: "Analisis daya dukung tanah (Terzaghi) untuk menentukan dimensi pondasi dangkal yang aman.",
     category: "geoteknik",
+    size: "large"
   },
   {
     id: "retaining-wall",
     path: "/retaining-wall",
-    icon: "🧱",
+    icon: KanbanSquare,
     title: "Dinding Penahan Tebing",
     shortTitle: "Dinding Tebing",
-    description: "Simulasikan kekuatan dinding beton dalam menahan tekanan tanah tebing agar aman dari longsor.",
+    description: "Pengecekan faktor keamanan (Safety Factor) dinding penahan tanah terhadap guling dan geser.",
     category: "geoteknik",
+    size: "medium"
   },
   {
     id: "hydrology",
     path: "/hydrology",
-    icon: "🌊",
+    icon: Waves,
     title: "Bendungan Penangkal Banjir",
     shortTitle: "Bendungan",
-    description: "Lihat bagaimana bendungan menampung air hujan deras agar kota di hilir bebas banjir.",
+    description: "Simulasi penelusuran banjir (flood routing) waduk untuk memitigasi debit puncak limpasan air.",
     category: "air",
+    size: "large"
   },
   {
     id: "pipe-flow",
     path: "/pipe-flow",
-    icon: "🚰",
+    icon: Droplets,
     title: "Tekanan Air Pipa Rumah",
     shortTitle: "Pipa Air",
-    description: "Temukan alasan mengapa air keran bisa mengecil akibat panjang pipa dan banyaknya belokan.",
+    description: "Perhitungan kehilangan energi (head loss) akibat friksi pada jaringan pipa air bersih.",
     category: "air",
+    size: "medium"
   },
   {
     id: "traffic",
     path: "/traffic",
-    icon: "🚦",
+    icon: TrafficCone,
     title: "Kalkulator Kemacetan Jalan",
     shortTitle: "Macet Jalan",
-    description: "Uji kapasitas jalan raya dan tentukan tingkat kenyamanan berkendara berdasarkan jumlah mobil.",
+    description: "Evaluasi Tingkat Pelayanan (Level of Service) dan kepadatan arus lalu lintas perkotaan.",
     category: "air",
+    size: "medium"
   },
 ] as const
 
 export type ModuleId = (typeof MODULES)[number]["id"]
 
 export const CATEGORIES = [
-  { id: "struktur", label: "🏢 Rekayasa Struktur", color: "civil" },
-  { id: "material", label: "🧪 Material & Manajemen", color: "civil" },
-  { id: "geoteknik", label: "🪨 Tanah & Pondasi", color: "earth" },
-  { id: "air", label: "🌊 Air & Lalu Lintas", color: "civil" },
+  { id: "struktur", label: "Rekayasa Struktur", color: "blue" },
+  { id: "material", label: "Material & Manajemen", color: "emerald" },
+  { id: "geoteknik", label: "Geoteknik & Tanah", color: "amber" },
+  { id: "air", label: "Hidrologi & Lalu Lintas", color: "cyan" },
 ] as const
