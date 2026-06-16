@@ -24,8 +24,6 @@ export function EarthquakeSim() {
   const animRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
 
-  const [showControls, setShowControls] = useState(true)
-
   const result = useMemo(
     () => calculateEarthquake({ floors, material, magnitude }),
     [floors, material, magnitude]
@@ -199,22 +197,17 @@ export function EarthquakeSim() {
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
       
-      {/* 
-        CAD-STYLE FLOATING CONTROL PANEL 
-      */}
-      <AnimatePresence>
-        {showControls && (
-          <motion.div 
-            initial={{ x: -300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -300, opacity: 0 }}
-            className="absolute z-20 left-4 right-4 md:right-auto top-4 bottom-4 md:w-80 glass-panel rounded-[var(--radius-xl)] flex flex-col shadow-2xl"
-          >
-            <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
-              <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2">
-                <Settings2 size={18} className="text-civil-500" /> Parameter
-              </h2>
-            </div>
+      {/* Controls Panel */}
+      <motion.div 
+        initial={{ x: -300, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50"
+      >
+        <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
+          <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2">
+            <Settings2 size={18} className="text-civil-500" /> Parameter Gempa
+          </h2>
+        </div>
             
             <div className="p-5 overflow-y-auto flex-1 space-y-6">
               
@@ -299,21 +292,11 @@ export function EarthquakeSim() {
               )}
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-
+      
       {/* 
         MAIN CANVAS AREA 
       */}
       <div className="relative flex-1 bg-[var(--color-background)]">
-        {/* Toggle Controls Button (for smaller screens or CAD full-screen mode) */}
-        <button 
-          onClick={() => setShowControls(!showControls)}
-          className="absolute top-4 left-4 z-30 p-2 rounded-lg glass-panel hover:bg-[var(--color-secondary)] transition-colors shadow-sm"
-          title="Toggle Parameters"
-        >
-          <Settings2 size={20} />
-        </button>
 
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
