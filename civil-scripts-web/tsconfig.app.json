@@ -16,11 +16,10 @@
     "jsx": "react-jsx",
 
     /* Path alias */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
 
     /* Linting */
     "noUnusedLocals": true,

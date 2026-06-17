@@ -1,30 +1,22 @@
-// Physics engine for remaining 9 modules
+import { type Metadata } from "@/lib/api";
 
 export type StatusType = "safe" | "warning" | "danger" | "neutral";
 
 // ==========================================
 // 1. STEEL BEAM (Kelenturan Balok & Jembatan)
 // ==========================================
-export function calculateBeam(length: number, load: number, profileType: "WF200" | "WF300" | "WF400", material: "BJ37" | "BJ41" | "BJ50" = "BJ37") {
+export function calculateBeam(length: number, load: number, profileType: string, material: string, metadata?: Metadata | null) {
   // Standar SNI 1729:2020 / AISC 360-16
   const E = 200000; // Modulus Elastisitas Baja (MPa)
   
-  // Database Profil WF (H x B x tw x tf)
-  // Ix dalam mm^4, Zx (Modulus Plastis) dalam mm^3, Aw (Area Web) dalam mm^2
-  const PROFILES = {
-    WF200: { h: 200, tw: 5.5, Ix: 18400000, Zx: 200000, label: "WF 200x100" },
-    WF300: { h: 300, tw: 6.5, Ix: 72100000, Zx: 514000, label: "WF 300x150" },
-    WF400: { h: 400, tw: 8.0, Ix: 237000000, Zx: 1286000, label: "WF 400x200" }
-  };
-  
-  const MATERIALS = {
-    BJ37: 240, // Fy dalam MPa
-    BJ41: 250,
-    BJ50: 290
-  };
+  if (!metadata || !metadata.STEEL_PROFILES || !metadata.STEEL_MATERIALS) {
+    return null; // Fallback if metadata is not loaded yet
+  }
 
-  const p = PROFILES[profileType];
-  const Fy = MATERIALS[material];
+  const p = metadata.STEEL_PROFILES[profileType];
+  const Fy = metadata.STEEL_MATERIALS[material]?.fy;
+
+  if (!p || !Fy) return null;
 
   // Kapasitas Penampang (Asumsi Fully Braced / Compact Section)
   const phi_b = 0.90;
@@ -36,6 +28,7 @@ export function calculateBeam(length: number, load: number, profileType: "WF200"
   const Aw = p.h * p.tw; // Luas web efektif mm2
   const Vn = 0.6 * Fy * Aw; // N
   const phiVn_kN = (phi_v * Vn) / 1000; // Kapasitas Geser Desain (kN)
+
 
   // Analisis Struktur Statis Tertentu (Beban Terpusat di Tengah Bentang)
   const L_mm = length * 1000;
@@ -151,7 +144,7 @@ export function calculateConcrete(targetStrength: number, flyAshPercent: number)
   const airVolume = 0.02; // 2% entrapped air
   
   // Perkiraan w/c ratio empiris berdasarkan f'c (Cylinder strength)
-  let wc_ratio = 0.60;
+  let wc_ratio: number;
   if (targetStrength >= 40) wc_ratio = 0.43;
   else if (targetStrength >= 30) wc_ratio = 0.54;
   else if (targetStrength >= 25) wc_ratio = 0.60;

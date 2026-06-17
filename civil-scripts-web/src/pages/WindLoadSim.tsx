@@ -1,9 +1,14 @@
 import { MethodModal } from "@/components/shared/MethodModal"
-import { useState, useMemo } from "react"
-import { calculateWindLoad } from "@/lib/physics/models"
+import { useState, useMemo, useRef } from "react"
+import { pdf } from "@react-pdf/renderer"
+import html2canvas from "html2canvas"
+import { StandardReport } from "@/components/reports/StandardReport"
+import { calculateWindLoad as localCalculateWindLoad } from "@/lib/physics/models"
+import { VerificationBadge } from "@/components/shared/VerificationBadge"
+import { usePhysics } from "@/hooks/usePhysics"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { motion } from "framer-motion"
-import { Settings2, Info } from "lucide-react"
+import { Settings2, Info, Download, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function WindLoadSim() { 
@@ -11,14 +16,65 @@ export function WindLoadSim() {
   const [height, setHeight] = useState(50)
   const [windSpeed, setWindSpeed] = useState(30)
   const [exposure, setExposure] = useState<"B" | "C" | "D">("B")
+  const [isExporting, setIsExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
-  const result = useMemo(() => calculateWindLoad(windSpeed, height, exposure), [height, windSpeed, exposure])
+  const { result, isVerified, isValidating, error } = usePhysics(
+    "calculateWindLoad",
+    (p) => localCalculateWindLoad(p.windSpeed, p.buildingHeight, p.exposure),
+    useMemo(() => ({ windSpeed, buildingHeight: height, exposure }), [height, windSpeed, exposure])
+  )
+
+  const handleExportPDF = async () => {
+    if (!result) return;
+    try {
+      setIsExporting(true);
+      let base64Image = '';
+      if (exportRef.current) {
+        const canvas = await html2canvas(exportRef.current, { scale: 2 });
+        base64Image = canvas.toDataURL('image/png');
+      }
+
+      const doc = <StandardReport 
+        title="Analisis Beban Angin" 
+        subtitle="SNI 1727:2020"
+        inputs={[
+          {label: "Tinggi Gedung (z)", value: height + " m"},
+          {label: "Kec. Angin Dasar (V)", value: windSpeed + " m/s"},
+          {label: "Kategori Eksposur", value: exposure},
+        ]}
+        results={[
+          {label: "Tekanan Maksimal (qz)", value: result.maxPressure.toFixed(0) + " Pa"},
+          {label: "α (Alpha)", value: result.alpha.toFixed(1)},
+          {label: "Zg (Gradien)", value: result.zg.toFixed(2) + " m"},
+        ]}
+        conclusionMsg={result.msg}
+        conclusionStatus={result.status}
+        chartImageBase64={base64Image}
+      />;
+      
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Laporan_Beban_Angin_${Date.now()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch(err) {
+      console.error("Gagal export PDF", err);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  if (!result) return null;
 
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
       <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50">
         <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
           <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis SNI 1727</h2>
+          <VerificationBadge isVerified={isVerified} isValidating={isValidating} error={error} />
         </div>
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
           <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
@@ -32,7 +88,6 @@ export function WindLoadSim() {
               <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{height} m</span>
             </div>
             <input type="range" min={10} max={200} step={5} value={height} onChange={(e) => setHeight(Number(e.target.value))} className="w-full accent-civil-500" />
-            <p className="text-xs text-[var(--color-muted-foreground)]">Ketinggian struktur dari permukaan tanah.</p>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -40,7 +95,6 @@ export function WindLoadSim() {
               <span className="text-sm font-mono font-bold bg-destructive/10 text-destructive px-2 py-0.5 rounded">{windSpeed} m/s</span>
             </div>
             <input type="range" min={20} max={80} value={windSpeed} onChange={(e) => setWindSpeed(Number(e.target.value))} className="w-full accent-destructive" />
-            <p className="text-xs text-[var(--color-muted-foreground)]">Kecepatan angin rencana (basic wind speed).</p>
           </div>
           <div className="space-y-3">
             <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Kategori Eksposur</label>
@@ -51,8 +105,20 @@ export function WindLoadSim() {
             </select>
           </div>
         </div>
+
+        <div className="p-5 border-t border-[var(--color-border)]">
+          <button
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-slate-800 text-white hover:bg-slate-700 transition-all shadow-lg disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            Unduh Laporan PDF
+          </button>
+        </div>
       </motion.div>
-      <div className="relative flex-1 bg-[var(--color-background)]">
+
+      <div ref={exportRef} className="relative flex-1 bg-[var(--color-background)]">
         
         {/* Main Chart Area */}
         <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-32 pt-32 flex items-center justify-center">
@@ -74,16 +140,6 @@ export function WindLoadSim() {
             <span className={cn("font-mono font-bold text-lg", result.status === "danger" ? "text-destructive" : result.status === "warning" ? "text-warning" : "text-safe")}>
               {result.maxPressure.toFixed(0)} Pa
             </span>
-          </div>
-          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg hidden xl:flex gap-4 items-end">
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">α (Alpha)</span>
-              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.alpha.toFixed(1)}</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Zg (Gradien)</span>
-              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.zg.toFixed(2)} m</span>
-            </div>
           </div>
         </div>
 
@@ -114,6 +170,6 @@ export function WindLoadSim() {
         </div>
       </div>
       <MethodModal isOpen={showMethodModal} onClose={() => setShowMethodModal(false)} method="wind_load" />
-      </div>
+    </div>
   )
 }

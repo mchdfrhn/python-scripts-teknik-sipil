@@ -1,17 +1,71 @@
 import { MethodModal } from "@/components/shared/MethodModal"
-import { useState, useMemo } from "react"
-import { calculateConcrete } from "@/lib/physics/models"
+import { VerificationBadge } from "@/components/shared/VerificationBadge"
+import { usePhysics } from "@/hooks/usePhysics"
+import { useState, useMemo, useRef } from "react"
+import { calculateConcrete as localCalculateConcrete } from "@/lib/physics/models"
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { motion } from "framer-motion"
-import { Settings2, Info } from "lucide-react"
+import { Settings2, Info, Download, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { pdf } from "@react-pdf/renderer"
+import html2canvas from "html2canvas"
+import { StandardReport } from "@/components/reports/StandardReport"
 
 export function ConcreteSim() { 
   const [showMethodModal, setShowMethodModal] = useState(false);
   const [strength, setStrength] = useState(30)
   const [flyAsh, setFlyAsh] = useState(15)
+  const [isExporting, setIsExporting] = useState(false)
+  const exportRef = useRef<HTMLDivElement>(null)
 
-  const result = useMemo(() => calculateConcrete(strength, flyAsh), [strength, flyAsh])
+  const { result, isVerified, isValidating, error } = usePhysics(
+    "calculateConcrete",
+    (p) => localCalculateConcrete(p.targetStrength, p.flyAshPercent),
+    useMemo(() => ({ targetStrength: strength, flyAshPercent: flyAsh }), [strength, flyAsh])
+  )
+
+  const handleExportPDF = async () => {
+    if (!result) return;
+    try {
+      setIsExporting(true);
+      let base64Image = '';
+      if (exportRef.current) {
+        const canvas = await html2canvas(exportRef.current, { scale: 2 });
+        base64Image = canvas.toDataURL('image/png');
+      }
+
+      const doc = <StandardReport 
+        title="Mix Design Beton Ramah Lingkungan" 
+        subtitle="SNI 7656 / ACI 211.1"
+        inputs={[
+          {label: "Mutu Beton fc'", value: strength + " MPa"},
+          {label: "Substitusi Fly Ash", value: flyAsh + " %"},
+        ]}
+        results={[
+          {label: "Semen", value: result.finalCement.toFixed(1) + " kg"},
+          {label: "Fly Ash", value: result.flyAshMass.toFixed(1) + " kg"},
+          {label: "Reduksi CO2", value: result.co2_reduction.toFixed(1) + " %"},
+        ]}
+        conclusionMsg={result.msg}
+        conclusionStatus={result.status}
+        chartImageBase64={base64Image}
+      />;
+      
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Laporan_Mix_Design_Beton_${Date.now()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch(err) {
+      console.error("Gagal export PDF", err);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  if (!result) return null;
 
   const pieData = [
     { name: "Semen (kg)", value: parseFloat(result.finalCement.toFixed(1)) },
@@ -27,6 +81,7 @@ export function ConcreteSim() {
       <motion.div initial={{ x: -300, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50">
         <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
           <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2"><Settings2 size={18} className="text-civil-500" /> Analisis ACI 211.1</h2>
+          <VerificationBadge isVerified={isVerified} isValidating={isValidating} error={error} />
         </div>
         <div className="p-5 overflow-y-auto flex-1 space-y-6">
           <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
@@ -51,8 +106,20 @@ export function ConcreteSim() {
             <p className="text-xs text-[var(--color-muted-foreground)]">Persentase penggantian semen dengan abu terbang.</p>
           </div>
         </div>
+
+        <div className="p-5 border-t border-[var(--color-border)]">
+          <button 
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-slate-800 text-white hover:bg-slate-700 transition-all shadow-lg disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            Unduh Laporan PDF
+          </button>
+        </div>
       </motion.div>
-      <div className="relative flex-1 bg-[var(--color-background)]">
+
+      <div className="relative flex-1 bg-[var(--color-background)]" ref={exportRef}>
         
         {/* Main Chart Area */}
         <div className="absolute inset-0 w-full h-full p-4 md:p-8 pb-40 pt-32 flex items-center justify-center">
@@ -134,6 +201,6 @@ export function ConcreteSim() {
         </div>
       </div>
       <MethodModal isOpen={showMethodModal} onClose={() => setShowMethodModal(false)} method="concrete" />
-      </div>
+    </div>
   )
 }

@@ -1,39 +1,113 @@
 import { MethodModal } from "@/components/shared/MethodModal"
+import { VerificationBadge } from "@/components/shared/VerificationBadge"
 import { useState, useMemo, useRef, useCallback, useEffect } from "react"
 import {
-  calculateEarthquake,
+  calculateEarthquake as localCalculateEarthquake,
   getEarthquakeStatus,
-  type EarthquakeParams,
 } from "@/lib/physics/earthquake"
+import { usePhysics } from "@/hooks/usePhysics"
+import { useMetadata } from "@/hooks/useMetadata"
 import { motion } from "framer-motion"
-import { Play, Square, Settings2, Info } from "lucide-react"
+import { Play, Square, Settings2, Info, Loader2, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { pdf } from "@react-pdf/renderer"
+import html2canvas from "html2canvas"
+import { StandardReport } from "@/components/reports/StandardReport"
 
-const MATERIALS: { value: EarthquakeParams["material"]; label: string; desc: string }[] = [
-  { value: "SRPMB", label: "Sistem Rangka Pemikul Momen Biasa (R=3)", desc: "Sistem struktur beton standar. Kurang daktail (kaku) menghadapi gempa besar." },
-  { value: "SRPMM", label: "Sistem Rangka Pemikul Momen Menengah (R=5)", desc: "Sistem struktur dengan tingkat daktilitas menengah." },
-  { value: "SRPMK", label: "Sistem Rangka Pemikul Momen Khusus (R=8)", desc: "Sistem struktur sangat daktail. Wajib untuk daerah zona gempa kuat menurut SNI 1726." },
-]
+import { Earthquake3D } from "@/components/visualizations/Earthquake3D"
 
 export function EarthquakeSim() { 
   const [showMethodModal, setShowMethodModal] = useState(false);
   const [floors, setFloors] = useState(10)
-  const [material, setMaterial] = useState<EarthquakeParams["material"]>("SRPMK")
-  const [magnitude, setMagnitude] = useState(6.0) // This maps to SDS 0.1g - 1.5g
+  const [material, setMaterial] = useState<string>("SRPMK")
+  const [magnitude, setMagnitude] = useState(6.0) 
+  const [chartMode, setChartMode] = useState<"2d" | "3d">("3d")
 
   const [isAnimating, setIsAnimating] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const animRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const result = useMemo(
-    () => calculateEarthquake({ floors, material, magnitude }),
-    [floors, material, magnitude]
+  const { metadata, isLoading: isMetaLoading } = useMetadata();
+
+  const { result, isVerified, isValidating, error } = usePhysics(
+    "calculateEarthquake",
+    (p) => {
+      const res = localCalculateEarthquake({ ...p, metadata });
+      if (!res) return null;
+      const safety = getEarthquakeStatus(res.maxDrift, res.allowableDrift);
+      return {
+        ...res,
+        status: safety.status,
+        message: safety.message,
+        deflections: [],
+      };
+    },
+    useMemo(() => ({ floors, material, magnitude }), [floors, material, magnitude])
   )
 
-  const currentAmplitude = result.amplitudeAt(currentTime)
-  const currentDeflections = result.deflectionsAt(currentTime)
-  const safety = getEarthquakeStatus(result.maxDrift, result.allowableDrift)
+  const handleExportPDF = async () => {
+    if (!result) return;
+    try {
+      setIsExporting(true);
+      let base64Image = '';
+      if (exportRef.current) {
+        const canvas = await html2canvas(exportRef.current, { scale: 2 });
+        base64Image = canvas.toDataURL('image/png');
+      }
+
+      const doc = <StandardReport 
+        title="Goyangan Gedung Bertingkat" 
+        subtitle="SNI 1726"
+        inputs={[
+          {label: "Jumlah Lantai", value: floors + " Lantai"},
+          {label: "Intensitas Gempa", value: magnitude},
+        ]}
+        results={[
+          {label: "Base Shear", value: result.baseShear.toFixed(2) + " kN"},
+          {label: "Max Drift", value: result.maxDrift.toFixed(3) + " m"},
+        ]}
+        conclusionMsg={safety.message}
+        conclusionStatus={safety.status}
+        chartImageBase64={base64Image}
+      />;
+      
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Laporan_Gempa_${Date.now()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch(err) {
+      console.error("Gagal export PDF", err);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  // Animation logic helpers
+  const T = useMemo(() => 0.0466 * Math.pow(floors * 4.0, 0.9), [floors])
+  const freq = 1 / T
+
+  const currentAmplitude = useMemo(() => {
+    if (!result) return 0
+    return result.maxDrift * Math.exp(-result.damping * 2 * currentTime) * Math.sin(2 * Math.PI * freq * currentTime)
+  }, [result, currentTime, freq])
+
+  const currentDeflections = useMemo(() => {
+    if (!result) return []
+    const defs: number[] = []
+    for (let i = 0; i <= floors; i++) {
+      defs.push(currentAmplitude * Math.pow(i / floors, 1.5))
+    }
+    return defs
+  }, [result, currentAmplitude, floors])
+
+  const safety = result ? getEarthquakeStatus(result.maxDrift, result.allowableDrift) : { status: "neutral" as const, message: "Calculating..." }
 
   const startAnimation = useCallback(() => {
     setIsAnimating(true)
@@ -64,8 +138,6 @@ export function EarthquakeSim() {
     }
   }, [])
 
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -82,7 +154,6 @@ export function EarthquakeSim() {
 
     ctx.clearRect(0, 0, W, H)
 
-    // Blueprint grid background
     ctx.strokeStyle = "rgba(148, 163, 184, 0.15)"
     ctx.lineWidth = 1
     const gridSize = 40
@@ -106,23 +177,12 @@ export function EarthquakeSim() {
     const columnOffset = 35
     const floorH = drawH / floors
 
-    // Ground line with shadow
     ctx.strokeStyle = "var(--color-border)"
     ctx.lineWidth = 4
     ctx.beginPath()
     ctx.moveTo(0, H - padBottom)
     ctx.lineTo(W, H - padBottom)
     ctx.stroke()
-    
-    // Hatching under ground
-    ctx.strokeStyle = "rgba(148, 163, 184, 0.2)"
-    ctx.lineWidth = 1
-    for(let x = -H; x < W; x += 10) {
-      ctx.beginPath()
-      ctx.moveTo(x, H - padBottom + 5)
-      ctx.lineTo(x + padBottom, H)
-      ctx.stroke()
-    }
 
     const leftPts: [number, number][] = []
     const rightPts: [number, number][] = []
@@ -130,13 +190,12 @@ export function EarthquakeSim() {
     for (let i = 0; i <= floors; i++) {
       const y = H - padBottom - i * floorH
       const deflection = currentDeflections[i] ?? 0
-      const px = centerX + deflection * 15 // CAD scale factor
+      const px = centerX + deflection * 15
 
       leftPts.push([px - columnOffset, y])
       rightPts.push([px + columnOffset, y])
     }
 
-    // Floor slabs (modern solid)
     ctx.strokeStyle = "var(--color-muted-foreground)"
     ctx.lineWidth = 4
     ctx.lineCap = "round"
@@ -147,194 +206,141 @@ export function EarthquakeSim() {
       ctx.stroke()
     }
 
-    // Columns
-    const isDanger = safety.status === "danger"
-    ctx.strokeStyle = isDanger ? "var(--color-destructive)" : "var(--color-civil-500)"
+    ctx.strokeStyle = "var(--color-civil-500)"
     ctx.lineWidth = 6
-    ctx.lineJoin = "round"
-    
-    // Glow effect if animating and safe
-    if (isAnimating && !isDanger) {
-      ctx.shadowColor = "rgba(37, 99, 235, 0.4)"
-      ctx.shadowBlur = 10
-    }
-
     ctx.beginPath()
-    leftPts.forEach(([x, y], idx) => (idx === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)))
+    ctx.moveTo(leftPts[0][0], leftPts[0][1])
+    for (let i = 1; i <= floors; i++) {
+      ctx.lineTo(leftPts[i][0], leftPts[i][1])
+    }
     ctx.stroke()
 
     ctx.beginPath()
-    rightPts.forEach(([x, y], idx) => (idx === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)))
+    ctx.moveTo(rightPts[0][0], rightPts[0][1])
+    for (let i = 1; i <= floors; i++) {
+      ctx.lineTo(rightPts[i][0], rightPts[i][1])
+    }
     ctx.stroke()
 
-    ctx.shadowBlur = 0 // reset
+  }, [currentDeflections, floors])
 
-    // Joint nodes
-    ctx.fillStyle = "var(--color-background)"
-    ctx.lineWidth = 2
-    for (const [x, y] of [...leftPts, ...rightPts]) {
-      ctx.beginPath()
-      ctx.arc(x, y, 4, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.stroke()
-    }
-
-    // HUD Text
-    ctx.fillStyle = "var(--color-foreground)"
-    ctx.font = "bold 14px var(--font-mono)"
-    ctx.textAlign = "right"
-    ctx.fillText(`T: ${currentTime.toFixed(2)}s`, W - 20, 30)
-    ctx.fillText(`AMP: ${Math.abs(currentAmplitude).toFixed(3)}m`, W - 20, 50)
-
-  }, [currentDeflections, currentTime, floors, currentAmplitude, safety.status, isAnimating])
+  if (isMetaLoading || !result) {
+    return (
+      <div className="h-[calc(100vh-8rem)] w-full flex items-center justify-center">
+        <Loader2 className="animate-spin text-civil-500" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg flex flex-col md:flex-row">
-      
-      {/* Controls Panel */}
       <motion.div 
         initial={{ x: -300, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         className="z-20 w-full md:w-80 shrink-0 glass-panel border-b md:border-b-0 md:border-r border-[var(--color-border)] flex flex-col bg-[var(--color-background)]/50"
       >
-            <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
+        <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
           <h2 className="font-[var(--font-display)] font-bold flex items-center gap-2">
-            <Settings2 size={18} className="text-civil-500" /> Parameter Gempa (SNI 1726)
+            <Settings2 size={18} className="text-civil-500" /> Analisis SNI 1726
           </h2>
+          <VerificationBadge isVerified={isVerified} isValidating={isValidating} error={error} />
         </div>
-            
-            <div className="p-5 overflow-y-auto flex-1 space-y-6">
-              
-              <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
-                <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Analisis Statik Ekuivalen</p>
-                <p className="text-[var(--color-muted-foreground)] leading-relaxed">Menghitung Gaya Geser Dasar ($V$) dan Simpangan Antar Lantai (Story Drift) berdasarkan Kategori Sistem Penahan Gaya Seismik SNI 1726.</p>
-            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30 cursor-pointer hover:bg-civil-500/30 hover:border-civil-500/50 select-none transition-colors" onClick={() => setShowMethodModal(true)}>METODE: SNI 1726:2019</span></div>
-              </div>
-
-              {/* Floors */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Tinggi Gedung</label>
-                  <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{floors} Lantai</span>
-                </div>
-                <input
-                  type="range" min={3} max={20} value={floors}
-                  onChange={(e) => setFloors(Number(e.target.value))}
-                  className="w-full accent-civil-500"
-                />
-                <p className="text-xs text-[var(--color-muted-foreground)]">Makin tinggi gedung, goyangan di lantai atas akan makin terasa.</p>
-              </div>
-
-              {/* Material */}
-              <div className="space-y-3">
-                <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Bahan Utama Struktur</label>
-                <div className="flex flex-col gap-3">
-                  {MATERIALS.map((m) => (
-                    <label key={m.value} className={cn(
-                      "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                      material === m.value 
-                        ? "border-civil-500 bg-civil-500/10 ring-1 ring-civil-500" 
-                        : "border-[var(--color-border)] hover:bg-[var(--color-secondary)]"
-                    )}>
-                      <input 
-                        type="radio" name="material" value={m.value}
-                        checked={material === m.value}
-                        onChange={() => setMaterial(m.value)}
-                        className="sr-only"
-                      />
-                      <div className={cn("mt-0.5 shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center", material === m.value ? "border-civil-500" : "border-gray-400")}>
-                        {material === m.value && <div className="w-2 h-2 rounded-full bg-civil-500" />}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className={cn("text-sm font-bold", material === m.value ? "text-civil-700 dark:text-civil-300" : "text-[var(--color-foreground)]")}>{m.label}</span>
-                        <span className="text-xs mt-1 text-[var(--color-muted-foreground)] leading-relaxed">{m.desc}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Magnitude */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Percepatan Spektral (SDS)</label>
-                  <span className="text-sm font-mono font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded">{((magnitude / 10) * 1.5).toFixed(2)} g</span>
-                </div>
-                <input
-                  type="range" min={1} max={10} step={0.5} value={magnitude}
-                  onChange={(e) => setMagnitude(Number(e.target.value))}
-                  className="w-full accent-destructive"
-                />
-              </div>
-            </div>
-
-            {/* Action Bar */}
-            <div className="p-4 border-t border-[var(--color-border)]">
-              {isAnimating ? (
-                <button
-                  onClick={stopAnimation}
-                  className="w-full py-3 rounded-lg bg-destructive text-destructive-foreground font-bold text-sm flex items-center justify-center gap-2 hover:bg-destructive/90 transition-colors"
-                >
-                  <Square size={16} fill="currentColor" /> Hentikan
-                </button>
-              ) : (
-                <button
-                  onClick={startAnimation}
-                  className="w-full py-3 rounded-lg bg-civil-500 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-civil-600 shadow-[var(--shadow-glow)] transition-all active:scale-95"
-                >
-                  <Play size={16} fill="currentColor" /> Simulasikan
-                </button>
-              )}
-            </div>
-          </motion.div>
-      
-      {/* 
-        MAIN CANVAS AREA 
-      */}
-      <div className="relative flex-1 bg-[var(--color-background)]">
-
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-
-        {/* HUD Metrics - Floating Top Right */}
-        <div className="absolute top-4 right-4 z-10 flex gap-3 pointer-events-none">
-          <div className="glass-panel px-4 py-2 rounded-lg flex flex-col items-end bg-[var(--color-background)]/80 backdrop-blur-md border border-[var(--color-border)]">
-            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">Base Shear (Gaya Geser Dasar)</span>
-            <span className="font-mono font-bold text-lg text-destructive">
-              {result.baseShear.toFixed(0)} kN
-            </span>
+        
+        <div className="p-5 overflow-y-auto flex-1 space-y-6">
+          <div className="bg-civil-500/10 border border-civil-500/20 p-4 rounded-xl text-sm text-[var(--color-foreground)]">
+            <p className="font-semibold text-civil-600 dark:text-civil-400 mb-1">Goyangan Gedung Bertingkat</p>
+            <p className="text-[var(--color-muted-foreground)] leading-relaxed">Mensimulasikan respon elastik dan inelastik gedung terhadap beban gempa berdasarkan sistem pemikul momen.</p>
+            <div className="mt-3 flex items-center gap-2"><span className="bg-civil-500/20 text-civil-600 dark:text-civil-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-civil-500/30 cursor-pointer hover:bg-civil-500/30 hover:border-civil-500/50 select-none transition-colors" onClick={() => setShowMethodModal(true)}>METODE: STATIK EKUIVALEN</span></div>
           </div>
-          <div className="glass-panel px-4 py-2 rounded-lg flex flex-col items-end bg-[var(--color-background)]/80 backdrop-blur-md border border-[var(--color-border)]">
-            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">Simpangan Atap Maks / Izin</span>
-            <span className={cn("font-mono font-bold text-lg", result.maxDrift > result.allowableDrift ? "text-destructive" : "text-safe")}>
-              {result.maxDrift.toFixed(2)}m / {result.allowableDrift.toFixed(2)}m
-            </span>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Jumlah Lantai</label>
+              <span className="text-sm font-mono font-bold bg-[var(--color-secondary)] px-2 py-0.5 rounded">{floors} Lantai</span>
+            </div>
+            <input type="range" min={3} max={20} value={floors} onChange={(e) => setFloors(Number(e.target.value))} className="w-full accent-civil-500" />
           </div>
-          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md border border-[var(--color-border)] px-4 py-2 rounded-lg hidden xl:flex gap-4 items-end">
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Sds</span>
-              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.Sds.toFixed(2)} g</span>
+
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Mode Visualisasi</label>
+            <div className="flex bg-[var(--color-secondary)] p-1 rounded-lg">
+              {(["3d", "2d"] as const).map(mode => (
+                <button key={mode} onClick={() => setChartMode(mode)} className={cn("flex-1 text-[10px] font-bold py-1.5 rounded-md transition-colors", chartMode === mode ? "bg-[var(--color-background)] text-[var(--color-foreground)] shadow-sm" : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]")}>
+                  {mode === "3d" ? "3D VIEW" : "CETAK BIRU (2D)"}
+                </button>
+              ))}
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Faktor Modifikasi (R)</span>
-              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.R}</span>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Sistem Struktur</label>
+            <select value={material} onChange={(e) => setMaterial(e.target.value)} className="w-full p-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-secondary)] text-sm">
+              {metadata && Object.entries(metadata.EARTHQUAKE_SYSTEMS).map(([key, s]) => (
+                <option key={key} value={key}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">Intensitas Gempa</label>
+              <span className="text-sm font-mono font-bold bg-destructive/10 text-destructive px-2 py-0.5 rounded">{magnitude.toFixed(1)}</span>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase">Pembesaran Defleksi (Cd)</span>
-              <span className="font-mono font-bold text-sm text-[var(--color-foreground)]">{result.Cd}</span>
-            </div>
+            <input type="range" min={1} max={10} step={0.5} value={magnitude} onChange={(e) => setMagnitude(Number(e.target.value))} className="w-full accent-destructive" />
           </div>
         </div>
 
-        {/* HUD Status - Floating Bottom */}
+        <div className="p-5 border-t border-[var(--color-border)] flex flex-col gap-3">
+          <button 
+            onClick={isAnimating ? stopAnimation : startAnimation}
+            className={cn(
+              "w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg",
+              isAnimating ? "bg-zinc-800 text-white hover:bg-zinc-700" : "bg-civil-500 text-white hover:bg-civil-600 shadow-civil-500/25"
+            )}
+          >
+            {isAnimating ? <><Square size={18} fill="currentColor" /> Hentikan</> : <><Play size={18} fill="currentColor" /> Mulai Simulasi</>}
+          </button>
+          
+          <button 
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 bg-slate-800 text-white hover:bg-slate-700 transition-all shadow-lg disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            Unduh Laporan PDF
+          </button>
+        </div>
+      </motion.div>
+
+      <div className="relative flex-1 bg-[var(--color-background)]" ref={exportRef}>
+        <div className="absolute inset-0 w-full h-full cursor-move">
+          {chartMode === "3d" ? (
+            <Earthquake3D floors={floors} deflections={currentDeflections} status={safety.status} />
+          ) : (
+            <canvas ref={canvasRef} className="w-full h-full" />
+          )}
+        </div>
+
+        <div className="absolute top-4 right-4 z-10 flex gap-3 pointer-events-none flex-wrap justify-end">
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg flex flex-col items-end">
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">Base Shear (V)</span>
+            <span className="font-mono font-bold text-lg text-[var(--color-foreground)]">{result.baseShear.toFixed(0)} <span className="text-xs text-[var(--color-muted-foreground)]">kN</span></span>
+          </div>
+          <div className="glass-panel bg-[var(--color-background)]/80 backdrop-blur-md px-4 py-2 rounded-lg flex flex-col items-end">
+            <span className="text-[10px] font-bold text-[var(--color-muted-foreground)] uppercase hidden sm:block">SDS (Spectral)</span>
+            <span className="font-mono font-bold text-lg text-[var(--color-foreground)]">{result.Sds.toFixed(2)} <span className="text-xs text-[var(--color-muted-foreground)]">g</span></span>
+          </div>
+        </div>
+
         <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none px-4">
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             key={safety.status}
             className={cn(
-              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4",
-              safety.status === "danger" ? "border-l-destructive" : 
-              safety.status === "warning" ? "border-l-warning" : "border-l-safe"
+              "glass-panel px-6 py-4 rounded-xl max-w-2xl w-full flex items-start gap-4 shadow-xl border-l-4 backdrop-blur-md",
+              safety.status === "danger" ? "border-l-destructive bg-destructive/10 dark:bg-destructive/20" : 
+              safety.status === "warning" ? "border-l-warning bg-warning/10 dark:bg-warning/20" : "border-l-safe bg-safe/10 dark:bg-safe/20"
             )}
           >
             <div className={cn(
@@ -345,13 +351,13 @@ export function EarthquakeSim() {
               <Info size={24} />
             </div>
             <div>
-              <h3 className="font-bold text-sm mb-1 uppercase tracking-wider">{safety.status === "safe" ? "Status Aman" : "Peringatan Struktural"}</h3>
-              <p className="text-sm font-medium leading-relaxed">{safety.message}</p>
+              <h3 className="font-bold text-sm mb-1 uppercase tracking-wider">{safety.status === "safe" ? "Kondisi Aman" : "Peringatan Keamanan"}</h3>
+              <p className="text-sm font-medium leading-relaxed text-[var(--color-foreground)]">{safety.message}</p>
             </div>
           </motion.div>
         </div>
       </div>
       <MethodModal isOpen={showMethodModal} onClose={() => setShowMethodModal(false)} method="earthquake" />
-      </div>
+    </div>
   )
 }

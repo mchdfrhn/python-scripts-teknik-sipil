@@ -5,7 +5,7 @@ import { ArrowUpRight } from "lucide-react"
 import { CATEGORIES } from "@/lib/constants"
 
 interface BentoCardProps {
-  icon: React.ElementType
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>
   title: string
   description: string
   path: string

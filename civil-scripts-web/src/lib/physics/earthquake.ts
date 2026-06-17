@@ -1,11 +1,14 @@
+import { type Metadata } from "@/lib/api"
+
 /**
  * Earthquake physics engine — Real Case (SNI 1726:2019)
  */
 
 export interface EarthquakeParams {
   floors: number
-  material: "SRPMK" | "SRPMM" | "SRPMB"
+  material: string
   magnitude: number // Repurposed as SDS (Spectral Acceleration) multiplier (1 to 10 mapped to 0.1g to 1.5g)
+  metadata?: Metadata | null
 }
 
 export interface EarthquakeResult {
@@ -24,17 +27,15 @@ export interface EarthquakeResult {
   Sds: number
 }
 
-const MATERIAL_CONFIG = {
-  SRPMB: { R: 3.0, Cd: 2.5, damping: 0.05, label: "Rangka Beton Biasa (SRPMB, R=3)" },
-  SRPMM: { R: 5.0, Cd: 4.5, damping: 0.05, label: "Rangka Beton Menengah (SRPMM, R=5)" },
-  SRPMK: { R: 8.0, Cd: 5.5, damping: 0.05, label: "Rangka Beton Khusus (SRPMK, R=8)" },
-}
+export function calculateEarthquake(params: EarthquakeParams): EarthquakeResult | null {
+  if (!params.metadata || !params.metadata.EARTHQUAKE_SYSTEMS) return null;
 
-export function calculateEarthquake(params: EarthquakeParams): EarthquakeResult {
-  const config = MATERIAL_CONFIG[params.material]
+  const config = params.metadata.EARTHQUAKE_SYSTEMS[params.material]
+  if (!config) return null;
 
   // SNI 1726 Parameters
   const Sds = (params.magnitude / 10) * 1.5; // Scale 1-10 to 0.15g - 1.5g
+
   const Ie = 1.0; // Faktor Keutamaan
   const R = config.R;
   const Cd = config.Cd;
