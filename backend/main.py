@@ -1,8 +1,11 @@
 import math
 import random
+import os
 from typing import List, Dict, Union, Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 app = FastAPI(
@@ -664,6 +667,31 @@ def calculate_traffic(params: TrafficParams):
     los = "A" if ds <= 0.45 else ("B" if ds <= 0.6 else ("C" if ds <= 0.75 else ("D" if ds <= 0.85 else ("E" if ds <= 1.0 else "F"))))
     cars = [{"id": i, "speed": max(10.0, 100.0 * (1.0 - ds)), "lane": random.randint(0, params.lanes - 1)} for i in range(min(int(params.volume / 100.0), 50))]
     return {"capacity": capacity, "ds": ds, "los": los, "C0": C0, "FCsf": FCsf, "status": "safe", "msg": f"LOS: {los}", "cars": cars}
+
+
+# Dynamic Static Files Serving for React Frontend
+frontend_dist = os.getenv("FRONTEND_DIST_DIR", "dist")
+if not os.path.exists(frontend_dist):
+    sibling_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../civil-scripts-web/dist")
+    if os.path.exists(sibling_dist):
+        frontend_dist = sibling_dist
+
+if os.path.exists(frontend_dist):
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{catchall:path}")
+    async def serve_react_app(catchall: str):
+        if catchall.startswith("api"):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Not Found")
+        
+        static_file_path = os.path.join(frontend_dist, catchall)
+        if os.path.isfile(static_file_path):
+            return FileResponse(static_file_path)
+            
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
 
 if __name__ == "__main__":
     import uvicorn

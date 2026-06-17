@@ -1,0 +1,12 @@
+.git
+node_modules
+sipil-env
+civil-scripts-web/node_modules
+civil-scripts-web/dist
+__pycache__
+*.pyc
+api_server.log
+.gemini
+.github
+Dockerfile
+.dockerignore
